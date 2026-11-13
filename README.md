@@ -9,8 +9,9 @@
 
 1. Copy `.env.example` to `.env` and fill in your Supabase project URL and publishable key.
 2. Copy `backend/.env.example` to `backend/.env`; set `GEMINI_API_KEY`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` there. Keep Gemini keys server-side and rotate any key previously used in a browser build.
-3. Install dependencies with `npm ci` and `npm ci --prefix backend`.
-4. Start the API in one terminal with `npm run dev --prefix backend` and the frontend in another with `npm run dev`.
+3. Run `supabase/migrations/20261112000100_therabot_schema.sql` in your project's Supabase SQL Editor to create the app tables and row-level security policies.
+4. Install dependencies with `npm ci` and `npm ci --prefix backend`.
+5. Start the API in one terminal with `npm run dev --prefix backend` and the frontend in another with `npm run dev`.
 
 The Vite development server proxies `/api` to the local backend. For deployment, host the backend separately, set its `FRONTEND_ORIGIN`, and set the frontend's `VITE_API_BASE_URL` to the backend origin.
 
