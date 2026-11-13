@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { getChatSession, sendMessageToGemini, generateChatTitle } from "@/services/gemini";
+import { getChatSession, sendMessageToGemini, generateChatTitle, type GeminiSession } from "@/services/gemini";
 import { conversationService, messageService, type Conversation, type Message as DBMessage } from "@/services/supabase";
 import { moodOrchestrator } from "@/services/mood-orchestrator";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +18,6 @@ interface Message {
   conversation_id?: string;
   created_at?: string;
 }
-import type { ChatSession } from "@google/generative-ai";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -45,7 +44,7 @@ const TextChat = () => {
   const [currentMessage, setCurrentMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
+  const [chatSession, setChatSession] = useState<GeminiSession | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [chatSessionStartTime, setChatSessionStartTime] = useState<number | null>(null);

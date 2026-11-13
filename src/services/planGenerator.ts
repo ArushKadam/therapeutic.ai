@@ -1,6 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+import { generateGeminiContent } from './gemini';
 
 export interface MoodPattern {
   primaryMood: string;
@@ -30,19 +28,11 @@ export interface GeneratedExercise {
 }
 
 export class PlanGeneratorService {
-  private model;
-
-  constructor() {
-    this.model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-  }
-
   async generateWeeklyPlan(moodPattern: MoodPattern): Promise<GeneratedPlan> {
     const prompt = this.createPlanPrompt(moodPattern);
     
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const text = await generateGeminiContent(prompt);
       
       // Parse the AI response and structure it
       return this.parsePlanResponse(text, moodPattern);
@@ -343,4 +333,4 @@ Format your response as JSON with this structure:
   }
 }
 
-export const planGenerator = new PlanGeneratorService(); 
+export const planGenerator = new PlanGeneratorService();

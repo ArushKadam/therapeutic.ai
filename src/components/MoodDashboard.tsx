@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { TrendingUp, Calendar, Heart, BarChart3, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from './ui/button';
-import { moodService, type MoodEntry } from '@/services/supabase';
+import { dailyMoodService } from '@/services/supabase';
 import { processMoodData } from '@/lib/mood-processing';
 
 const MoodDashboard = () => {
@@ -16,8 +16,8 @@ const MoodDashboard = () => {
     const fetchMoodData = async () => {
       try {
         setLoading(true);
-        const entries = await moodService.list();
-        const { stats, weeklyData, insights } = processMoodData(entries);
+        const summaries = await dailyMoodService.list();
+        const { stats, weeklyData, insights } = processMoodData(summaries);
         setStats(stats);
         setWeeklyData(weeklyData);
         setInsights(insights);

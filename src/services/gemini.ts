@@ -1,18 +1,27 @@
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, ChatSession } from "@google/generative-ai";
+import { supabase } from "@/services/supabase";
 
-// IMPORTANT: Do not hardcode the API key. Use environment variables.
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+// gemini-1.5 and gemini-pro were shut down. This is the current low-latency replacement.
+export const GEMINI_MODEL = "gemini-3.5-flash-lite";
 
-const modelConfig = {
-  model: "gemini-1.5-flash-latest",
-  safetySettings: [
-    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  ],
-};
+type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
+export type GeminiSession = { systemPrompt: string; history: GeminiContent[] };
+
+export async function generateGeminiContent(prompt: string, systemInstruction?: string): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Sign in to use the AI features.");
+
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ""}/api/gemini/generate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ prompt, systemInstruction }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Gemini request failed.");
+  return result.text;
+}
 
 // Predefined mood categories
 export const MOOD_CATEGORIES = {
@@ -50,30 +59,31 @@ export interface MoodAnalysis {
 }
 
 // Memoize the chat session to maintain conversation history
-let chatSession: ChatSession | null = null;
+let chatSession: GeminiSession | null = null;
 
-export const getChatSession = (systemPrompt: string): ChatSession => {
-  if (chatSession) {
-    return chatSession;
+export const getChatSession = (systemPrompt: string): GeminiSession => {
+  if (!chatSession || chatSession.systemPrompt !== systemPrompt) {
+    chatSession = { systemPrompt, history: [] };
   }
-
-  const model = genAI.getGenerativeModel({
-    ...modelConfig,
-    systemInstruction: systemPrompt,
-  });
-
-  chatSession = model.startChat({
-    history: [],
-  });
-
   return chatSession;
 };
 
-export const sendMessageToGemini = async (session: ChatSession, message: string): Promise<string> => {
+export const sendMessageToGemini = async (session: GeminiSession, message: string): Promise<string> => {
   try {
-    const result = await session.sendMessage(message);
-    const response = await result.response;
-    return response.text();
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (!authSession?.access_token) throw new Error("Sign in to use the AI chat.");
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ""}/api/gemini/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
+      body: JSON.stringify({
+        systemInstruction: session.systemPrompt,
+        contents: [...session.history, { role: "user", parts: [{ text: message }] }],
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Gemini request failed.");
+    session.history.push({ role: "user", parts: [{ text: message }] }, { role: "model", parts: [{ text: result.text }] });
+    return result.text;
   } catch (error) {
     console.error("Gemini API Error:", error);
     // Provide a generic, supportive error message to the user
@@ -83,16 +93,10 @@ export const sendMessageToGemini = async (session: ChatSession, message: string)
 
 export const generateChatTitle = async (userMessage: string): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({
-      ...modelConfig,
-      systemInstruction: "You are a helpful assistant that generates concise, meaningful titles for conversations. Create a short title (2-5 words) that captures the main topic or theme of the user's message. Respond only with the title, no additional text or punctuation."
-    });
-
-    const result = await model.generateContent(
-      `Generate a short, meaningful title for this conversation starter: "${userMessage}"`
-    );
-    const response = await result.response;
-    const title = response.text().trim();
+    const title = (await generateGeminiContent(
+      `Generate a short, meaningful title for this conversation starter: "${userMessage}"`,
+      "Create a short title (2-5 words). Respond only with the title, without punctuation."
+    )).trim();
     
     // Fallback to first few words if title is too long or empty
     if (!title || title.length > 50) {
@@ -108,13 +112,10 @@ export const generateChatTitle = async (userMessage: string): Promise<string> =>
 };
 
 export async function analyzeJournalEntry(entryContent: string): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
   const prompt = `Analyze the sentiment and key themes of the following journal entry. Provide a brief, one-sentence summary. Entry: "${entryContent}"`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    return await generateGeminiContent(prompt);
   } catch (error) {
     console.error("Error analyzing journal entry:", error);
     return "AI analysis could not be completed.";
@@ -130,17 +131,12 @@ export async function analyzeMoodFromText(
   context?: string
 ): Promise<MoodAnalysis> {
   const moodList = Object.entries(MOOD_CATEGORIES).map(([key, value]) => `- ${key}: ${value.description}`).join('\n');
-  const model = genAI.getGenerativeModel({
-    ...modelConfig,
-    systemInstruction: `You are an expert emotional intelligence AI that analyzes text to determine mood and emotional state.\n\nAvailable mood categories (always use one of these, never invent new ones):\n${moodList}\n\nIMPORTANT:\n- Always return a valid JSON object as specified below, even if you are unsure.\n- If the user expresses strong anger, rage, or fury, use 'mad' as the primaryMood.\n- Never label strong emotions as 'neutral'.\n- If you are unsure, pick the closest matching mood from the list.\n- Do not return any text outside the JSON object.\n\nYour task is to analyze the provided text and return a JSON response with the following structure:\n{\n  "primaryMood": "one of the mood categories",\n  "secondaryMood": "optional secondary mood if present",\n  "intensity": "number from 1-10 indicating emotional intensity",\n  "confidence": "number from 0-1 indicating how confident you are in this analysis",\n  "reasoning": "brief explanation of why you chose this mood",\n  "keyEmotions": ["array", "of", "key", "emotional", "words", "detected"]\n}\n\nFocus on the overall emotional tone, not just keywords. Consider context, writing style, and implicit emotions. Be empathetic and accurate.`
-  });
+  const systemInstruction = `You are an expert emotional intelligence AI that analyzes text to determine mood and emotional state.\n\nAvailable mood categories (always use one of these, never invent new ones):\n${moodList}\n\nIMPORTANT:\n- Always return a valid JSON object as specified below, even if you are unsure.\n- If the user expresses strong anger, rage, or fury, use 'mad' as the primaryMood.\n- Never label strong emotions as 'neutral'.\n- If you are unsure, pick the closest matching mood from the list.\n- Do not return any text outside the JSON object.\n\nReturn JSON with primaryMood, secondaryMood, intensity (1-10), confidence (0-1), reasoning, and keyEmotions. Be empathetic and accurate.`;
 
   const prompt = `Analyze the mood and emotional state from this ${source} content:\n\nContent: "${content}"\n${context ? `Additional context: ${context}` : ''}\n\nRespond with only the JSON object, no additional text.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
+    const text = (await generateGeminiContent(prompt, systemInstruction)).trim();
     
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -241,9 +237,7 @@ export async function combineMoodAnalyses(analyses: MoodAnalysis[]): Promise<Moo
     return analyses[0];
   }
 
-  const model = genAI.getGenerativeModel({
-    ...modelConfig,
-    systemInstruction: `You are an expert emotional intelligence AI that combines multiple mood analyses to determine the overall dominant mood for a day.
+  const systemInstruction = `You are an expert emotional intelligence AI that combines multiple mood analyses to determine the overall dominant mood for a day.
 
 Available mood categories:
 ${Object.entries(MOOD_CATEGORIES).map(([key, value]) => `- ${key}: ${value.description}`).join('\n')}
@@ -254,8 +248,7 @@ Your task is to analyze multiple mood data points and determine the most represe
 - Confidence levels (more confident analyses should weigh more)
 - Overall emotional trajectory throughout the day
 
-Return a JSON response with the same structure as individual analyses, representing the combined/dominant mood.`
-  });
+Return a JSON response with the same structure as individual analyses, representing the combined/dominant mood.`;
 
   const prompt = `Combine these mood analyses to determine the dominant mood for today:
 
@@ -271,9 +264,7 @@ Analysis ${index + 1} (${analysis.source}):
 Determine the most representative overall mood and respond with only the JSON object.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
+    const text = (await generateGeminiContent(prompt, systemInstruction)).trim();
     
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
