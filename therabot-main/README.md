@@ -16,13 +16,6 @@
 The Vite development server proxies `/api` to the local backend. For deployment, host the backend separately, set its `FRONTEND_ORIGIN`, and set the frontend's `VITE_API_BASE_URL` to the backend origin.
 
 
-## Founders
-
-- Hritvik Singhvi - Dougherty Valley High School - 06/30/2025
-- Vedo Bhowmik - Dougherty Valley High School - 06/30/2025
-- Varenya Garg - Dougherty Valley High School - 06/30/2025
-- Rijul Rajput - Dougherty Valley High School - 06/30/2025
-
 ## Category
 
 Health and Wellness
