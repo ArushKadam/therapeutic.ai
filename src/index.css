@@ -52,36 +52,49 @@
     --radius: 0.5rem;
   }
 
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
 
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
+  /* 👇 PASTE THIS RIGHT BELOW :root (STILL INSIDE @layer base) 👇 */
+[data-theme="light"] {
+    --background: 38 35% 91.5%;
+    --foreground: 30 14% 20%;
 
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --card: 40 45% 95.5%;
+    --card-foreground: 30 14% 20%;
 
-    --primary: 200 35% 47%;
-    --primary-foreground: 0 0% 98%;
+    --popover: 40 45% 95.5%;
+    --popover-foreground: 30 14% 20%;
 
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
+    --primary: 30 10% 12%;
+    --primary-foreground: 40 45% 96%;
 
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --secondary: 36 30% 88.5%;
+    --secondary-foreground: 30 14% 22%;
 
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --muted: 37 28% 90%;
+    --muted-foreground: 32 10% 42%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    /* 👇 UPDATED: Matches the sidebar background so no dark box appears 👇 */
+    --accent: 36 30% 89%;
+    --accent-foreground: 30 10% 12%;
 
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 200 35% 47%;
+    --destructive: 14 55% 52%;
+    --destructive-foreground: 40 45% 96%;
+
+    --border: 36 22% 84%;
+    --input: 36 22% 84%;
+    --ring: 30 10% 12%;
+
+    --sidebar-background: 36 30% 89%;
+    --sidebar-foreground: 30 14% 20%;
+    --sidebar-accent: 36 30% 89%;
+    --sidebar-accent-foreground: 30 10% 12%;
+    --sidebar-border: 36 22% 83%;
   }
+  [data-sidebar="menu-button"] {
+  box-shadow: none !important;
 }
+}
+  
 
 @layer base {
   * {

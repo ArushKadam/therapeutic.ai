@@ -7,6 +7,9 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AuthPage from "./pages/AuthPage";
+import { ThemeProvider } from "./contexts/ThemeContext";
+
+
 
 const queryClient = new QueryClient();
 
@@ -48,13 +51,15 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

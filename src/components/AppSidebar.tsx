@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from './ui/badge';
+import { ThemeToggle } from "./ThemeToggle";
 
 interface AppSidebarProps {
   activeSection: string;
@@ -241,20 +242,27 @@ export function AppSidebar({
                 <Skeleton className="w-32 h-3" />
               </div>
             </div>
+            
+            
           ) : user ? (
-            <UserProfile 
-              name={formatUserName(userName)} 
-              email={userEmail}
-              imageUrl={user.user_metadata.avatar_url}
-              onSettingsClick={() => onSectionChange('settings')} 
-              onLogout={logout}
-            />
-          ) : (
-            <div className="p-3">
-              <p>No user found</p>
-            </div>
-          )}
-        </motion.div>
-      </SidebarContent>
-    </Sidebar>;
+      <>
+        <div className="px-3 pb-2">
+          <ThemeToggle />
+        </div>
+        <UserProfile
+          name={formatUserName(userName)}
+          email={userEmail}
+          imageUrl={user.user_metadata.avatar_url}
+          onSettingsClick={() => onSectionChange('settings')}
+          onLogout={logout}
+/>
+    </>
+  ) : (
+    <div className="p-3">
+      <p>No user found</p>
+    </div>
+  )}
+  </motion.div>
+  </SidebarContent>
+</Sidebar>;
 }
