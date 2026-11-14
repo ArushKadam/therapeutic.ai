@@ -1,383 +1,616 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Badge } from './ui/badge';
-import { Pause, Play, Square, Wind } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-// Breathing patterns configuration
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Wind,
+  Play,
+  Pause,
+  Square,
+  Check,
+  ChevronDown,
+  RotateCcw,
+} from "lucide-react";
+
 const BREATHING_PATTERNS = {
-  simple: { name: 'Simple Breathing', inhale: 6, hold1: 0, exhale: 6, hold2: 0 },
-  box: { name: 'Box Breathing', inhale: 4, hold1: 4, exhale: 4, hold2: 4 },
-  '4-7-8': { name: '4-7-8 Technique', inhale: 4, hold1: 7, exhale: 8, hold2: 0 },
-  calm: { name: 'Calming Breath', inhale: 5, hold1: 2, exhale: 7, hold2: 1 },
+  simple: {
+    name: "Simple Breathing",
+    inhale: 6,
+    hold1: 0,
+    exhale: 6,
+    hold2: 0,
+  },
+  box: {
+    name: "Box Breathing",
+    inhale: 4,
+    hold1: 4,
+    exhale: 4,
+    hold2: 4,
+  },
+  "4-7-8": {
+    name: "4-7-8 Technique",
+    inhale: 4,
+    hold1: 7,
+    exhale: 8,
+    hold2: 0,
+  },
+  calm: {
+    name: "Calming Breath",
+    inhale: 5,
+    hold1: 2,
+    exhale: 7,
+    hold2: 1,
+  },
 };
 
 const SESSION_DURATIONS = [
-  { value: 30, label: '30 seconds' },
-  { value: 60, label: '60 seconds' },
-  { value: 90, label: '90 seconds' },
-  { value: 120, label: '120 seconds' },
+  { value: 30, label: "30 seconds" },
+  { value: 60, label: "60 seconds" },
+  { value: 90, label: "90 seconds" },
+  { value: 120, label: "120 seconds" },
 ];
 
-type BreathingPhase = 'inhale' | 'hold1' | 'exhale' | 'hold2';
+type PatternKey = keyof typeof BREATHING_PATTERNS;
+type Phase = "inhale" | "hold1" | "exhale" | "hold2";
+
+const PHASES: Phase[] = [
+  "inhale",
+  "hold1",
+  "exhale",
+  "hold2",
+];
+
+const COLORS = {
+  background: "#F5F0E9",
+  surface: "#F0E9E0",
+  ivory: "#FAF7F2",
+  taupe: "#E9DFD4",
+  border: "#DCD1C6",
+  espresso: "#302A26",
+  muted: "#87776C",
+  accent: "#937E6B",
+  sage: "#819179",
+};
+
+const formatTime = (seconds: number) => {
+  const safe = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(safe / 60);
+  const remainder = safe % 60;
+
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+};
 
 export function BreathingExercise() {
-  const [selectedPattern, setSelectedPattern] = useState<keyof typeof BREATHING_PATTERNS>('simple');
-  const [sessionDuration, setSessionDuration] = useState(60); // 60 seconds default
+  const [selectedPattern, setSelectedPattern] =
+    useState<PatternKey>("simple");
+
+  const [sessionDuration, setSessionDuration] = useState(60);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [currentPhase, setCurrentPhase] = useState<BreathingPhase>('inhale');
-  const [phaseTimer, setPhaseTimer] = useState(0);
-  const [sessionTimer, setSessionTimer] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+
+  const [elapsed, setElapsed] = useState(0);
   const [totalCycles, setTotalCycles] = useState(0);
 
+  const lastTickRef = useRef<number | null>(null);
 
   const pattern = BREATHING_PATTERNS[selectedPattern];
-  const phaseDuration = pattern[currentPhase];
 
-  // Calculate session progress
-  const sessionProgress = sessionDuration > 0 ? (sessionTimer / sessionDuration) * 100 : 0;
-  const remainingTime = Math.max(0, sessionDuration - sessionTimer);
+  const phases = PHASES.filter(
+    (phase) => pattern[phase] > 0
+  );
 
-  // Format time display
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const cycleDuration = phases.reduce(
+    (total, phase) => total + pattern[phase],
+    0
+  );
 
-  // Get phase instruction text
-  const getPhaseText = () => {
-    switch (currentPhase) {
-      case 'inhale': return 'Breathe In';
-      case 'hold1': return 'Hold';
-      case 'exhale': return 'Breathe Out';
-      case 'hold2': return 'Hold';
-      default: return '';
+  const completedCycles = Math.floor(elapsed / cycleDuration);
+  const cyclePosition = elapsed % cycleDuration;
+
+  let phase: Phase = phases[0];
+  let phaseElapsed = 0;
+  let phaseStart = 0;
+
+  for (const current of phases) {
+    const duration = pattern[current];
+
+    if (cyclePosition < phaseStart + duration) {
+      phase = current;
+      phaseElapsed = cyclePosition - phaseStart;
+      break;
     }
-  };
 
-  // Move to next breathing phase
-  const nextPhase = useCallback(() => {
-    const phases: BreathingPhase[] = ['inhale', 'hold1', 'exhale', 'hold2'];
-    const currentIndex = phases.indexOf(currentPhase);
-    let nextIndex = (currentIndex + 1) % phases.length;
-    
-    // Skip phases with 0 duration
-    while (pattern[phases[nextIndex]] === 0 && nextIndex !== currentIndex) {
-      nextIndex = (nextIndex + 1) % phases.length;
-    }
-    
-    setCurrentPhase(phases[nextIndex]);
-    setPhaseTimer(0);
-    
-    // Increment cycle count when completing exhale
-    if (phases[nextIndex] === 'inhale') {
-      setTotalCycles(prev => prev + 1);
-    }
-  }, [currentPhase, pattern]);
+    phaseStart += duration;
+  }
 
-  // Main timer effect
+  const phaseDuration = pattern[phase];
+  const phaseProgress = Math.min(
+    1,
+    phaseElapsed / phaseDuration
+  );
+
+  const remainingTime = Math.max(
+    0,
+    sessionDuration - elapsed
+  );
+
+  const sessionProgress = Math.min(
+    100,
+    (elapsed / sessionDuration) * 100
+  );
+
+  const phaseLabel =
+    phase === "inhale"
+      ? "Breathe in."
+      : phase === "exhale"
+      ? "Breathe out."
+      : "Hold gently.";
+
+  const phaseDescription =
+    phase === "inhale"
+      ? "Slowly fill your lungs."
+      : phase === "exhale"
+      ? "Release the air naturally."
+      : "Stay comfortable and relaxed.";
+
+  const breathingScale =
+    phase === "inhale"
+      ? 0.72 + phaseProgress * 0.28
+      : phase === "exhale"
+      ? 1 - phaseProgress * 0.28
+      : phase === "hold1"
+      ? 1
+      : 0.72;
+
   useEffect(() => {
-    if (!isActive || isPaused) return;
+    if (!isActive || isPaused) {
+      lastTickRef.current = null;
+      return;
+    }
 
-    const interval = setInterval(() => {
-      setPhaseTimer(prev => {
-        if (prev >= phaseDuration) {
-          nextPhase();
-          return 0;
-        }
-        return prev + 0.1;
-      });
+    lastTickRef.current = performance.now();
 
-      setSessionTimer(prev => {
-        if (prev >= sessionDuration) {
-          setIsActive(false);
-          return sessionDuration;
-        }
-        return prev + 0.1;
-      });
-    }, 100);
+    const interval = window.setInterval(() => {
+      const now = performance.now();
+      const last = lastTickRef.current ?? now;
+      const delta = Math.max(0, (now - last) / 1000);
 
-    return () => clearInterval(interval);
-  }, [isActive, isPaused, phaseDuration, sessionDuration, nextPhase]);
+      lastTickRef.current = now;
 
-  // Start breathing session
+      setElapsed((previous) =>
+        Math.min(sessionDuration, previous + delta)
+      );
+    }, 50);
+
+    return () => {
+      window.clearInterval(interval);
+      lastTickRef.current = null;
+    };
+  }, [isActive, isPaused, sessionDuration]);
+
+  useEffect(() => {
+    if (isActive && elapsed >= sessionDuration) {
+      setTotalCycles(Math.floor(sessionDuration / cycleDuration));
+      setIsActive(false);
+      setIsPaused(false);
+      setIsComplete(true);
+    }
+  }, [elapsed, isActive, sessionDuration, cycleDuration]);
+
   const startSession = () => {
-    setIsActive(true);
-    setIsPaused(false);
-    setSessionTimer(0);
-    setPhaseTimer(0);
+    setElapsed(0);
     setTotalCycles(0);
-    setCurrentPhase('inhale');
+    setIsComplete(false);
+    setIsPaused(false);
+    setIsActive(true);
   };
 
-  // Stop breathing session
   const stopSession = () => {
     setIsActive(false);
     setIsPaused(false);
-    setSessionTimer(0);
-    setPhaseTimer(0);
-    setCurrentPhase('inhale');
+    setIsComplete(false);
+    setElapsed(0);
+    setTotalCycles(0);
   };
 
-  // Toggle pause
   const togglePause = () => {
-    setIsPaused(!isPaused);
+    setIsPaused((previous) => !previous);
   };
 
-  // Calculate breathing circle scale and colors
-  const getBreathingScale = () => {
-    const progress = phaseDuration > 0 ? phaseTimer / phaseDuration : 0;
-    
-    switch (currentPhase) {
-      case 'inhale':
-        return 0.6 + (progress * 0.4); // Scale from 0.6 to 1.0
-      case 'hold1':
-        return 1.0; // Hold at full size
-      case 'exhale':
-        return 1.0 - (progress * 0.4); // Scale from 1.0 to 0.6
-      case 'hold2':
-        return 0.6; // Hold at small size
-      default:
-        return 0.6;
-    }
-  };
-
-  const getBreathingColors = () => {
-    // Use the specified color #4E85A2
-    return 'from-[#4E85A2] to-[#6B9AC7]';
-  };
+  const buttonBase =
+    "inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-all duration-200";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className="h-full flex flex-col space-y-6 pt-6"
+    <div
+      className="min-h-full w-full bg-[#F5F0E9] text-[#302A26]"
+      style={{
+        fontFamily:
+          "Inter, ui-sans-serif, system-ui, sans-serif",
+      }}
     >
-      {/* Header */}
-      <Card className="bg-gradient-to-br from-primary/10 to-transparent">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex-1">
-              <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                <Wind className="w-6 h-6 text-primary" />
-                Breathing Exercise
-              </CardTitle>
-              <CardDescription>
-                Find your calm with guided breathing exercises
-              </CardDescription>
+      <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-9 lg:px-12 lg:py-11">
+
+        {/* HEADER */}
+        <motion.header
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="border-b border-[#DCD1C6] pb-8"
+        >
+          <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.28em] text-[#937E6B]">
+            WELLNESS / BREATHING
+          </div>
+
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-black tracking-[-0.055em] sm:text-4xl lg:text-[46px]">
+                Find your calm.
+              </h1>
+
+              <p className="mt-2 text-sm text-[#7F7268]">
+                A moment to slow down, breathe, and reconnect.
+              </p>
             </div>
-            {!isActive && (
-              <div className="flex flex-col gap-3 min-w-0">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="min-w-0">
-                    <Select
-                      value={selectedPattern}
-                      onValueChange={(value: keyof typeof BREATHING_PATTERNS) => setSelectedPattern(value)}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(BREATHING_PATTERNS).map(([key, pattern]) => (
-                          <SelectItem key={key} value={key}>
-                            {pattern.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="min-w-0">
-                    <Select
-                      value={sessionDuration.toString()}
-                      onValueChange={(value) => setSessionDuration(parseInt(value))}
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SESSION_DURATIONS.map((duration) => (
-                          <SelectItem key={duration.value} value={duration.value.toString()}>
-                            {duration.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground text-right">
-                  {pattern.inhale}s in{pattern.hold1 > 0 && ` • ${pattern.hold1}s hold`} • {pattern.exhale}s out{pattern.hold2 > 0 && ` • ${pattern.hold2}s hold`}
+
+            <Wind
+              size={26}
+              strokeWidth={1.4}
+              className="text-[#937E6B]"
+            />
+          </div>
+        </motion.header>
+
+        {/* SESSION SETTINGS */}
+        <section className="border-b border-[#DCD1C6] py-8">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <h2 className="text-lg font-extrabold tracking-tight">
+                Your breathing session
+              </h2>
+
+              <p className="mt-2 text-xs text-[#87776C]">
+                Set a comfortable rhythm and duration.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <div className="min-w-[170px]">
+                <label
+                  htmlFor="breathing-pattern"
+                  className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#937E6B]"
+                >
+                  Technique
+                </label>
+
+                <div className="relative">
+                  <select
+                    id="breathing-pattern"
+                    value={selectedPattern}
+                    disabled={isActive || isPaused}
+                    onChange={(event) =>
+                      setSelectedPattern(
+                        event.target.value as PatternKey
+                      )
+                    }
+                    className="w-full appearance-none rounded-lg border border-[#D8C9B9] bg-[#FAF7F2] px-4 py-3 pr-10 text-sm font-medium text-[#302A26] outline-none transition focus:border-[#937E6B] disabled:opacity-60"
+                  >
+                    {Object.entries(BREATHING_PATTERNS).map(
+                      ([key, value]) => (
+                        <option key={key} value={key}>
+                          {value.name}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <ChevronDown
+                    size={15}
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#937E6B]"
+                  />
                 </div>
               </div>
+
+              <div className="min-w-[150px]">
+                <label
+                  htmlFor="breathing-duration"
+                  className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[#937E6B]"
+                >
+                  Duration
+                </label>
+
+                <div className="relative">
+                  <select
+                    id="breathing-duration"
+                    value={sessionDuration}
+                    disabled={isActive || isPaused}
+                    onChange={(event) =>
+                      setSessionDuration(
+                        Number(event.target.value)
+                      )
+                    }
+                    className="w-full appearance-none rounded-lg border border-[#D8C9B9] bg-[#FAF7F2] px-4 py-3 pr-10 text-sm font-medium text-[#302A26] outline-none transition focus:border-[#937E6B] disabled:opacity-60"
+                  >
+                    {SESSION_DURATIONS.map((duration) => (
+                      <option
+                        key={duration.value}
+                        value={duration.value}
+                      >
+                        {duration.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <ChevronDown
+                    size={15}
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#937E6B]"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <span className="rounded-full border border-[#D8C9B9] px-3 py-1 text-[11px] text-[#796353]">
+              {pattern.inhale}s inhale
+            </span>
+
+            {pattern.hold1 > 0 && (
+              <span className="rounded-full border border-[#D8C9B9] px-3 py-1 text-[11px] text-[#796353]">
+                {pattern.hold1}s hold
+              </span>
             )}
-            {isActive && (
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary">{pattern.name}</Badge>
-                <Badge variant="outline">{formatTime(sessionDuration)}</Badge>
-              </div>
+
+            <span className="rounded-full border border-[#D8C9B9] px-3 py-1 text-[11px] text-[#796353]">
+              {pattern.exhale}s exhale
+            </span>
+
+            {pattern.hold2 > 0 && (
+              <span className="rounded-full border border-[#D8C9B9] px-3 py-1 text-[11px] text-[#796353]">
+                {pattern.hold2}s hold
+              </span>
             )}
           </div>
-        </CardHeader>
-      </Card>
+        </section>
 
+        {/* MAIN BREATHING AREA */}
+        <section className="py-10">
+          <div className="relative flex min-h-[480px] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#DED3C7] bg-[#F0E9E0] px-5 py-12 text-center sm:min-h-[540px]">
 
+            <div className="absolute left-6 top-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#937E6B]">
+              TETHR / RESET
+            </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {!isActive ? (
-          // Pre-session view
-          <Card className="bg-gradient-to-br from-secondary/20 to-transparent">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-center">Ready to breathe?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center">
-                <p className="text-muted-foreground mb-4">
-                  Get comfortable and prepare for a guided breathing session
+            <div className="absolute right-6 top-6 text-[10px] font-bold uppercase tracking-[0.15em] text-[#937E6B]">
+              {isActive
+                ? isPaused
+                  ? "PAUSED"
+                  : "IN SESSION"
+                : "YOUR MOMENT"}
+            </div>
+
+            {/* BREATHING VISUAL */}
+            <div className="relative mb-9 flex h-[230px] w-[230px] items-center justify-center sm:h-[270px] sm:w-[270px]">
+
+              <div className="absolute inset-0 rounded-full border border-[#D6C7B8]" />
+
+              <div className="absolute inset-[18px] rounded-full border border-[#D6C7B8]/70" />
+
+              <motion.div
+                className="relative flex h-[190px] w-[190px] items-center justify-center rounded-full sm:h-[225px] sm:w-[225px]"
+                style={{
+                  background:
+                    "radial-gradient(circle at 35% 30%, #DCCABC 0%, #C3AD99 65%, #AE9784 100%)",
+                  boxShadow:
+                    "0 18px 45px rgba(92,69,51,0.13), inset 0 1px 8px rgba(255,255,255,0.28)",
+                }}
+                animate={{
+                  scale: isActive ? breathingScale : 0.82,
+                }}
+                transition={{
+                  duration: 0.12,
+                  ease: "linear",
+                }}
+              >
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#5B4B40]">
+                    {isActive
+                      ? "BREATHE"
+                      : "TETHR"}
+                  </span>
+
+                  <span className="mt-2 text-3xl font-black tracking-tight text-[#302A26] sm:text-4xl">
+                    {isActive
+                      ? Math.ceil(
+                          Math.max(
+                            0,
+                            phaseDuration - phaseElapsed
+                          )
+                        )
+                      : "•"}
+                  </span>
+
+                  {isActive && (
+                    <span className="mt-1 text-[10px] uppercase tracking-widest text-[#5B4B40]">
+                      seconds
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* INSTRUCTIONS */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={
+                  isActive
+                    ? `${phase}-${isPaused}`
+                    : "ready"
+                }
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="mb-7"
+              >
+                <h2 className="text-2xl font-black tracking-tight sm:text-3xl">
+                  {!isActive
+                    ? "Ready to breathe?"
+                    : isPaused
+                    ? "Take your time."
+                    : phaseLabel}
+                </h2>
+
+                <p className="mt-3 text-sm text-[#87776C]">
+                  {!isActive
+                    ? "Get comfortable and prepare for a guided breathing session."
+                    : isPaused
+                    ? "Your session is paused."
+                    : phaseDescription}
                 </p>
-                <div className="flex items-center justify-center gap-2 mb-6">
-                  <Badge variant="secondary">{pattern.name}</Badge>
-                  <span className="text-muted-foreground">•</span>
-                  <Badge variant="outline">{formatTime(sessionDuration)}</Badge>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* SESSION PROGRESS */}
+            {isActive && (
+              <div className="mb-7 w-full max-w-md">
+                <div className="mb-3 flex items-center justify-between text-xs text-[#796D61]">
+                  <span>
+                    Cycle {completedCycles + 1}
+                  </span>
+
+                  <span>
+                    {formatTime(remainingTime)} remaining
+                  </span>
+                </div>
+
+                <div className="h-1.5 overflow-hidden rounded-full bg-[#D8C9B9]">
+                  <div
+                    className="h-full rounded-full bg-[#819179] transition-[width] duration-100"
+                    style={{
+                      width: `${sessionProgress}%`,
+                    }}
+                  />
                 </div>
               </div>
-              <Button onClick={startSession} size="lg" className="w-full">
-                <Play className="h-5 w-5 mr-2" />
-                Start Breathing Session
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          // Active session view
-          <div className="space-y-6">
-            {/* Session Status Card */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold mb-2">{formatTime(Math.ceil(remainingTime))}</div>
-                  <div className="text-muted-foreground mb-4">
-                    Cycle {totalCycles + 1} • {pattern.name}
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                    <Badge variant={isPaused ? "destructive" : "default"}>
-                      {isPaused ? "Paused" : getPhaseText()}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            )}
 
-            {/* Breathing Animation Card */}
-            <Card className="bg-gradient-to-br from-secondary/20 to-transparent">
-              <CardContent className="p-12">
-                <div className="flex flex-col items-center justify-center">
-                  {/* Simple Circle Breathing Animation */}
-                  <div className="relative mb-8">
-                    <motion.div
-                      className={`w-48 h-48 rounded-full bg-gradient-to-br ${getBreathingColors()} shadow-2xl`}
-                      animate={{
-                        scale: getBreathingScale(),
-                      }}
-                      transition={{
-                        duration: 0.1,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  </div>
+            {/* CONTROLS */}
+            {!isActive ? (
+              <button
+                onClick={startSession}
+                className={`${buttonBase} min-w-[230px] bg-[#302A26] text-[#F5F0E9] hover:bg-[#4A3D34]`}
+              >
+                <Play size={17} fill="currentColor" />
+                Start Breathing
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={togglePause}
+                  className={`${buttonBase} min-w-[135px] bg-[#302A26] text-[#F5F0E9] hover:bg-[#4A3D34]`}
+                >
+                  {isPaused ? (
+                    <Play size={16} />
+                  ) : (
+                    <Pause size={16} />
+                  )}
 
-                  {/* Instructions - moved below the animation */}
-                  <div className="text-center mb-6">
-                    <div className="text-xl font-semibold text-foreground mb-1">{getPhaseText()}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {Math.ceil(phaseDuration - phaseTimer)}s remaining
-                    </div>
-                  </div>
+                  {isPaused ? "Resume" : "Pause"}
+                </button>
 
-                  {/* Progress Bar */}
-                  <div className="w-full max-w-md">
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-primary to-primary/60"
-                        style={{ width: `${sessionProgress}%` }}
-                        transition={{ duration: 0.1 }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <button
+                  onClick={stopSession}
+                  className={`${buttonBase} min-w-[135px] border border-[#CDBDAD] bg-[#FAF7F2] text-[#302A26] hover:bg-[#E9DFD4]`}
+                >
+                  <Square size={14} />
+                  End Session
+                </button>
+              </div>
+            )}
 
-            {/* Controls Card */}
-            <Card className="bg-gradient-to-br from-secondary/20 to-transparent">
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={togglePause}
-                    className="w-full sm:w-auto flex items-center gap-2"
-                  >
-                    {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
-                    {isPaused ? 'Resume' : 'Pause'}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    onClick={stopSession}
-                    className="w-full sm:w-auto flex items-center gap-2"
-                  >
-                    <Square className="h-4 w-4" />
-                    Stop Session
-                  </Button>
-                </div>
-                <div className="mt-4 text-center text-sm text-muted-foreground">
-                  Focus on your breath and let your mind relax
-                </div>
-              </CardContent>
-            </Card>
+            <p className="mt-6 text-xs text-[#937E6B]">
+              {isActive
+                ? "Follow the rhythm of the circle."
+                : "A little pause can go a long way."}
+            </p>
           </div>
-        )}
+        </section>
+
+        {/* FOOTER */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#DCD1C6] py-5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#937E6B]">
+            A SPACE TO RECONNECT.
+          </span>
+
+          <span className="text-xs text-[#87776C]">
+            One breath at a time.
+          </span>
+        </div>
       </div>
 
-      {/* Session Complete Modal */}
+      {/* COMPLETION MODAL */}
       <AnimatePresence>
-        {sessionTimer >= sessionDuration && isActive && (
+        {isComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50"
-            onClick={stopSession}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#302A26]/50 p-5"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-background rounded-lg p-8 max-w-md w-full text-center"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, y: 15, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.3 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="breathing-complete-title"
+              className="w-full max-w-md rounded-2xl border border-[#DCD1C6] bg-[#F5F0E9] p-8 text-center shadow-xl"
             >
-              <div className="text-4xl mb-4">🌸</div>
-              <h3 className="text-xl font-semibold mb-2">Session Complete</h3>
-              <p className="text-muted-foreground mb-4">
-                Great job! You completed {totalCycles} breathing cycles in {formatTime(sessionDuration)}.
+              <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#E0E8DD]">
+                <Check
+                  size={25}
+                  className="text-[#5F795C]"
+                />
+              </div>
+
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-[#937E6B]">
+                SESSION COMPLETE
               </p>
-              <div className="flex gap-3">
-                <Button onClick={startSession} className="flex-1">
+
+              <h2
+                id="breathing-complete-title"
+                className="text-3xl font-black tracking-tight text-[#302A26]"
+              >
+                A moment well spent.
+              </h2>
+
+              <p className="mt-4 text-sm leading-7 text-[#87776C]">
+                You completed {totalCycles} full breathing{" "}
+                {totalCycles === 1 ? "cycle" : "cycles"} in{" "}
+                {formatTime(sessionDuration)}.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={startSession}
+                  className={`${buttonBase} flex-1 bg-[#302A26] text-[#F5F0E9] hover:bg-[#4A3D34]`}
+                >
+                  <RotateCcw size={16} />
                   Start Another
-                </Button>
-                <Button onClick={stopSession} variant="outline" className="flex-1">
+                </button>
+
+                <button
+                  onClick={stopSession}
+                  className={`${buttonBase} flex-1 border border-[#D8C9B9] bg-[#FAF7F2] text-[#302A26] hover:bg-[#E9DFD4]`}
+                >
                   Finish
-                </Button>
+                </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
-} 
+}
