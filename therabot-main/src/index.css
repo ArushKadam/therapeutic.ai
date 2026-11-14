@@ -1,0 +1,278 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Uxum Font Family */
+@font-face {
+  font-family: 'Uxum';
+  src: url('/UxumRegular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Uxum';
+  src: url('/UxumBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 200 35% 47%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 200 35% 47%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 200 35% 47%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 200 35% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Uxum', 'Inter', sans-serif;
+  }
+
+  /* Uxum font weight utilities */
+  .font-uxum-regular {
+    font-family: 'Uxum', 'Inter', sans-serif;
+    font-weight: 400;
+  }
+
+  .font-uxum-bold {
+    font-family: 'Uxum', 'Inter', sans-serif;
+    font-weight: 700;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 0.8; 
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 1; 
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-10px); 
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { 
+    opacity: 0.4; 
+  }
+  50% { 
+    opacity: 0.8; 
+  }
+}
+
+.breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
+/* TETHR INTRO */
+
+.tethr-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F2F0EB;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 700ms ease;
+}
+
+.tethr-intro--exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tethr-intro__content {
+  text-align: center;
+  animation: tethrReveal 1.2s cubic-bezier(.22,1,.36,1) both;
+}
+
+.tethr-intro__wordmark {
+  position: relative;
+  font-family: "Arial Black", Arial, sans-serif;
+  font-size: clamp(65px, 15vw, 210px);
+  font-weight: 900;
+  letter-spacing: -0.075em;
+  line-height: 1;
+  padding-right: 0.075em;
+}
+
+.tethr-intro__text {
+  position: relative;
+  color: #29231F;
+  z-index: 2;
+}
+
+.tethr-intro__glow {
+  position: absolute;
+  inset: 0;
+  color: #B09B86;
+  filter: blur(22px);
+  opacity: 0.75;
+  animation: tethrGlow 2.2s ease-in-out forwards;
+}
+
+.tethr-intro__tagline {
+  margin-top: 28px;
+  color: #81776D;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  animation: tethrTagline 1s ease 0.5s both;
+}
+
+@keyframes tethrReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes tethrGlow {
+  0% { opacity: 0; filter: blur(35px); }
+  45% { opacity: 0.85; filter: blur(25px); }
+  100% { opacity: 0.35; filter: blur(12px); }
+}
+
+@keyframes tethrTagline {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tethr-intro,
+  .tethr-intro__content,
+  .tethr-intro__glow,
+  .tethr-intro__tagline {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* TETHR AUTHENTICATION */
+
+.tethr-auth-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  border: 1px solid #BCA99A;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #29231F;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background 200ms ease;
+}
+
+.tethr-auth-input::placeholder {
+  color: #A5988B;
+}
+
+.tethr-auth-input:focus {
+  border-color: #806C5B;
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow: 0 0 0 3px rgba(176, 155, 134, 0.15);
+}
+
+/* Preserve space for the input icons */
+.tethr-auth-input.pl-12 {
+  padding-left: 48px;
+}
+
+.tethr-auth-input.pr-12 {
+  padding-right: 48px;
+}
