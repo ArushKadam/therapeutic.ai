@@ -1,4 +1,5 @@
 import { supabase } from "@/services/supabase";
+import { detectCurrentSafetyConcern, getImmediateSafetyResponse } from "@/lib/safety-language";
 
 // gemini-1.5 and gemini-pro were shut down. This is the current low-latency replacement.
 export const GEMINI_MODEL = "gemini-3.5-flash-lite";
@@ -92,6 +93,15 @@ export const getChatSession = (systemPrompt: string): GeminiSession => {
 };
 
 export const sendMessageToGemini = async (session: GeminiSession, message: string): Promise<string> => {
+  const immediateSafetyResponse = getImmediateSafetyResponse(message);
+  if (immediateSafetyResponse) {
+    session.history.push(
+      { role: 'user', parts: [{ text: message }] },
+      { role: 'model', parts: [{ text: immediateSafetyResponse }] },
+    );
+    return immediateSafetyResponse;
+  }
+
   try {
     const { data: { session: authSession } } = await supabase.auth.getSession();
     if (!authSession?.access_token) throw new Error("Sign in to use the AI chat.");
@@ -116,6 +126,8 @@ export const sendMessageToGemini = async (session: GeminiSession, message: strin
 };
 
 export const generateChatTitle = async (userMessage: string): Promise<string> => {
+  if (detectCurrentSafetyConcern(userMessage)) return 'Support conversation';
+
   try {
     const title = (await generateGeminiContent(
       `Generate a short, meaningful title for this conversation starter: "${userMessage}"`,
@@ -154,10 +166,36 @@ export async function analyzeMoodFromText(
   source: 'journal' | 'voice' | 'chat',
   context?: string
 ): Promise<MoodAnalysis> {
-  const moodList = Object.entries(MOOD_CATEGORIES).map(([key, value]) => `- ${key}: ${value.description}`).join('\n');
-  const systemInstruction = `You are an expert emotional intelligence AI that analyzes text to determine mood and emotional state.\n\nAvailable mood categories (always use one of these, never invent new ones):\n${moodList}\n\nIMPORTANT:\n- Always return a valid JSON object as specified below, even if you are unsure.\n- If the user expresses strong anger, rage, or fury, use 'mad' as the primaryMood.\n- Never label strong emotions as 'neutral'.\n- If you are unsure, pick the closest matching mood from the list.\n- Do not return any text outside the JSON object.\n\nReturn JSON with primaryMood, secondaryMood, intensity (1-10), confidence (0-1), reasoning, and keyEmotions. Be empathetic and accurate.`;
+  const safetyConcern = detectCurrentSafetyConcern(content);
+  if (safetyConcern?.subject === 'self') {
+    return {
+      primaryMood: 'anxious',
+      secondaryMood: 'sad',
+      intensity: 9,
+      confidence: 0.85,
+      reasoning: 'This entry contains direct, current language about personal safety. Mood labels are only a rough reflection; prioritize safety and real-time support.',
+      keyEmotions: ['distress', 'overwhelmed'],
+      timestamp: new Date().toISOString(),
+      source,
+    };
+  }
+  if (safetyConcern?.subject === 'someone-else') {
+    return {
+      primaryMood: 'anxious',
+      secondaryMood: 'sad',
+      intensity: 7,
+      confidence: 0.7,
+      reasoning: 'This entry expresses concern about someone else’s safety. Mood labels are only a rough reflection; connect them with real-time support if they may be in danger.',
+      keyEmotions: ['worried', 'concerned'],
+      timestamp: new Date().toISOString(),
+      source,
+    };
+  }
 
-  const prompt = `Analyze the mood and emotional state from this ${source} content:\n\nContent: "${content}"\n${context ? `Additional context: ${context}` : ''}\n\nRespond with only the JSON object, no additional text.`;
+  const moodList = Object.entries(MOOD_CATEGORIES).map(([key, value]) => `- ${key}: ${value.description}`).join('\n');
+  const systemInstruction = `You are an emotional wellbeing assistant that analyzes the user's mood from their words. This is not a diagnosis or clinical assessment.\n\nAvailable mood categories (always use one of these, never invent new ones):\n${moodList}\n\nIMPORTANT:\n- Read the whole statement and identify who is speaking, who the subject is, and whether a thought is current, hypothetical, quoted, or historical.\n- Do not infer current self-harm intent from keywords alone. Explicit denials such as “I do not want to kill myself” are denials, not intent.\n- Do not attribute another person's risk to the user; reflect the user's own expressed concern if they are worried about someone else. Ignore fictional/hypothetical examples when inferring the user's current risk.\n- If the user explicitly describes current self-harm or suicide thoughts, reflect distress (sad or anxious), not neutral.\n- If the meaning is unclear, represent uncertainty with lower confidence rather than inventing certainty.\n- If the user expresses strong anger, rage, or fury, use 'mad' as the primaryMood.\n- Always return a valid JSON object and no text outside it.\n\nReturn JSON with primaryMood, secondaryMood, intensity (1-10), confidence (0-1), reasoning, and keyEmotions.`;
+
+  const prompt = `Analyze the mood and emotional state from this ${source} content:\n\nUser's entry: """${content}"""\n${context ? `Conversation context from Tethr (use only to resolve references; do not classify Tethr's words as the user's mood): """${context}"""` : ''}\n\nRespond with only the JSON object, no additional text.`;
 
   try {
     const text = (await generateGeminiContent(prompt, systemInstruction)).trim();
@@ -227,17 +265,8 @@ export async function analyzeMoodFromText(
     return validatedAnalysis;
   } catch (error) {
     console.error("Error analyzing mood from text:", error);
-    
-    // Fallback analysis
-    return {
-      primaryMood: 'neutral',
-      intensity: 5,
-      confidence: 0.3,
-      reasoning: "Analysis failed, defaulting to neutral mood",
-      keyEmotions: [],
-      timestamp: new Date().toISOString(),
-      source
-    };
+    // Do not store a fabricated neutral result when the model failed.
+    throw error;
   }
 }
 

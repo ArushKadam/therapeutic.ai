@@ -82,6 +82,142 @@ const sourceLabels: Record<keyof TherapySourceSelection, string> = {
 
 const qualityLabels = ['Very poor', 'Poor', 'Okay', 'Good', 'Restful'];
 
+interface SampleScenario {
+  label: string;
+  feelings: string;
+  patterns: string;
+  stressors: string;
+  sleep: string;
+  topics: string;
+  questions: string[];
+  journal: Array<[string, string, string]>;
+  chats: string[];
+  mood: Array<[string, string, number]>;
+  sleepData: Array<[number, number, string]>;
+  bookmarks: Array<[string, string]>;
+}
+
+const sampleScenarios: SampleScenario[] = [
+  {
+    label: 'Workload and boundaries',
+    feelings: 'I have felt stretched thin by overlapping deadlines, but proud when I asked a teammate to help. I also wrote that it has been hard to switch off after work.',
+    patterns: 'The sample mood check-ins move between anxious on busy days and calmer after breaks or supportive conversations. This is a small example set, not evidence of a real pattern.',
+    stressors: 'The fictional entries mention deadline pressure, checking messages late, and worry about disappointing coworkers.',
+    sleep: 'The fictional check-ins range from 5.5 to 7 hours, with one note about waking during the night. They do not establish why sleep varied.',
+    topics: 'I might want to discuss setting work boundaries, asking for help, and finding a way to transition out of work at the end of the day.',
+    questions: ['How can I set boundaries without feeling guilty?', 'What could a realistic end-of-work routine look like?'],
+    journal: [['A crowded week', 'I kept checking work messages after dinner. I felt tense, then relieved after asking for help with a deadline.', 'anxious'], ['A small boundary', 'I took a real lunch break today and felt more present afterward.', 'calm']],
+    chats: ['I feel behind even when I finish the most urgent tasks.', 'How do I tell my team I need help before I am overwhelmed?'],
+    mood: [['anxious', 'Felt keyed up after a packed workday.', 7], ['calm', 'Felt more settled after taking a lunch break.', 4], ['hopeful', 'Felt encouraged after asking for help.', 5]],
+    sleepData: [[5.5, 2, 'Woke up once and thought about tomorrow’s deadlines.'], [7, 4, 'Tried leaving my phone outside the bedroom.']],
+    bookmarks: [['I asked for help before the deadline passed.', 'A moment I want to remember']]
+  },
+  {
+    label: 'Social energy and connection',
+    feelings: 'I have wanted connection and quiet at the same time. I enjoyed seeing a friend, then felt drained and needed a slower evening.',
+    patterns: 'The sample mood notes alternate between lonely, connected, and tired. They suggest different feelings across situations rather than one fixed mood.',
+    stressors: 'The fictional notes mention uncertainty about making plans, fear of seeming distant, and balancing social time with rest.',
+    sleep: 'The sample check-ins range from 6 to 8 hours. One note mentions staying up late after a social event; another describes a restful night.',
+    topics: 'I might want to explore how I notice my social limits, communicate them kindly, and stay connected without overcommitting.',
+    questions: ['How can I communicate that I need downtime?', 'How do I tell the difference between helpful solitude and isolation?'],
+    journal: [['A good visit', 'I laughed with a friend and felt connected. I was also tired afterward and needed a quiet evening.', 'connected'], ['Plans changed', 'I felt disappointed when plans fell through, then called someone else and felt less alone.', 'lonely']],
+    chats: ['I want to see people but I get overwhelmed by too many plans.', 'Can needing quiet and wanting friends both be true?'],
+    mood: [['lonely', 'Felt left out when plans changed.', 6], ['connected', 'Enjoyed an unhurried conversation with a friend.', 5], ['tired', 'Needed time alone after a busy weekend.', 6]],
+    sleepData: [[6, 3, 'Stayed up later than I meant to after getting home.'], [8, 5, 'Quiet evening and a restful night.']],
+    bookmarks: [['I can care about people and still need time to recharge.', 'A reminder about boundaries']]
+  },
+  {
+    label: 'School pressure and confidence',
+    feelings: 'I have felt frustrated by a difficult assignment and worried that I should understand it faster. Finishing one small part helped me feel more capable.',
+    patterns: 'The fictional check-ins show frustration around school tasks and some relief after breaking work into smaller steps. More examples would be needed to tell whether this repeats.',
+    stressors: 'The sample entries mention a large assignment, comparing progress with classmates, and putting off asking a question in class.',
+    sleep: 'The example sleep notes vary from 5 to 8 hours. Shorter nights are mentioned near study sessions, but the sample does not show a cause.',
+    topics: 'I might discuss perfectionism, asking for academic support sooner, and how to make large assignments feel more manageable.',
+    questions: ['What makes it hard for me to ask for help?', 'Could we work on a plan for breaking down overwhelming tasks?'],
+    journal: [['The first draft', 'I stared at the assignment for a long time because I wanted to get it right. Starting a rough outline made it feel possible.', 'frustrated'], ['Asked a question', 'I was nervous to ask the teacher, but their explanation helped me choose a next step.', 'relieved']],
+    chats: ['Everyone else seems ahead of me, even though I know I cannot see the whole picture.', 'What is one small way to start when a task feels too big?'],
+    mood: [['frustrated', 'Had trouble starting a large assignment.', 7], ['overwhelmed', 'Thought about several deadlines at once.', 8], ['relieved', 'Got clarification and picked one next step.', 4]],
+    sleepData: [[5, 2, 'Stayed up studying and still felt worried about the work.'], [8, 4, 'Took a break from studying before bed.']],
+    bookmarks: [['A rough first draft is still a start.', 'Something I want to keep in mind']]
+  },
+  {
+    label: 'Family responsibilities and self-care',
+    feelings: 'I have felt caring and exhausted while helping family. I noticed some relief when I accepted practical help and made time for a short walk.',
+    patterns: 'The fictional entries include worry on caregiving days and moments of calm when support is shared. These examples do not establish a clinical pattern.',
+    stressors: 'The sample notes mention changing plans, feeling responsible for everyone, and not always making room for personal needs.',
+    sleep: 'The example check-ins range from 4.5 to 7 hours, with notes about interruptions and one more restful night after a lighter day.',
+    topics: 'I might discuss caregiver stress, asking family for specific help, and making self-care feel possible rather than like another obligation.',
+    questions: ['How can I ask for a specific kind of help?', 'What is a manageable way to make room for my own needs?'],
+    journal: [['A changed plan', 'I felt disappointed when my plans shifted to help family. I was glad I could be there, and I also felt worn out.', 'overwhelmed'], ['A little space', 'A short walk gave me time to breathe. I came back feeling a bit less tense.', 'calm']],
+    chats: ['I love my family and sometimes feel resentful about how much I am carrying.', 'How do I ask relatives for help without starting an argument?'],
+    mood: [['worried', 'Wondered how to balance family needs and my own plans.', 7], ['grateful', 'Appreciated when someone else handled a task.', 4], ['tired', 'Felt low on energy after a long day of caregiving.', 7]],
+    sleepData: [[4.5, 2, 'Woke up to help with something at home.'], [7, 4, 'Had a calmer evening and slept more steadily.']],
+    bookmarks: [['Accepting help can be part of caring for my family.', 'A perspective I want to bring up']]
+  },
+  {
+    label: 'Change, uncertainty, and routines',
+    feelings: 'I have felt unsettled during a period of change and missed familiar routines. A few small repeated habits helped me feel more grounded.',
+    patterns: 'Sample mood check-ins range from uncertain to hopeful. Hopefulness appears in notes about completing small routines, while uncertainty appears around upcoming changes.',
+    stressors: 'The fictional records mention a changing schedule, waiting for decisions, and trying to plan without having all the information.',
+    sleep: 'The example check-ins range from 6 to 7.5 hours. Notes vary between difficulty settling down and feeling rested after a consistent routine.',
+    topics: 'I might discuss tolerating uncertainty, choosing routines that are flexible, and deciding what is within my control while plans are changing.',
+    questions: ['What helps me handle uncertainty without trying to solve everything at once?', 'Which routines are supportive and realistic for me right now?'],
+    journal: [['A week of changes', 'Several plans shifted this week. I felt unsettled, so I wrote down what I know and what I can decide later.', 'uncertain'], ['Kept one routine', 'I made breakfast before checking messages and felt more grounded this morning.', 'hopeful']],
+    chats: ['I keep trying to plan for every possibility because I do not know what is going to happen.', 'How can I stay flexible without feeling like everything is out of control?'],
+    mood: [['uncertain', 'Waiting for more information about a change.', 6], ['hopeful', 'Felt encouraged by keeping one small routine.', 4], ['calm', 'Focused on what can be decided today.', 3]],
+    sleepData: [[6, 3, 'Took a while to settle while thinking through changes.'], [7.5, 4, 'Kept a steady evening routine.']],
+    bookmarks: [['I only need to decide what is in front of me today.', 'A grounding thought']]
+  },
+];
+
+const buildSampleTherapyData = (scenario: SampleScenario, startDate: string, endDate: string, sources: TherapySourceSelection): TherapyPreparationData => {
+  const rangeDays = Math.max(0, Math.floor((new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86_400_000));
+  const dateFor = (requestedDaysBack: number) => {
+    const daysBack = Math.min(requestedDaysBack, rangeDays);
+    const date = new Date(`${endDate}T12:00:00`);
+    date.setDate(date.getDate() - daysBack);
+    return date.toISOString();
+  };
+  const createdAt = dateFor(0);
+  return {
+    startDate,
+    endDate,
+    chats: sources.chats ? scenario.chats.map((text, index) => ({ date: dateFor(index * 3 + 1), text })) : [],
+    journals: sources.journals ? scenario.journal.map(([title, text, mood], index) => ({ date: dateFor(index * 5 + 2), title, text, mood })) : [],
+    moods: sources.moods ? scenario.mood.map(([mood, reflection], index) => ({ date: dateFor(index * 4 + 1), mood, reflection })) : [],
+    moodAnalyses: sources.moods ? scenario.mood.map(([mood, reflection, intensity], index) => ({ date: dateFor(index * 4 + 1), mood, intensity, emotions: [mood, index % 2 ? 'tired' : 'hopeful'] })) : [],
+    sleep: sources.sleep ? scenario.sleepData.map(([hours, quality, notes], index) => ({
+      id: `sample-sleep-${index}`,
+      user_id: 'sample-user',
+      checkin_date: dateFor(index * 6 + 1).slice(0, 10),
+      hours,
+      quality,
+      notes,
+      created_at: dateFor(index * 6 + 1),
+      updated_at: dateFor(index * 6 + 1),
+    })) : [],
+    bookmarks: sources.bookmarks ? scenario.bookmarks.map(([content, note], index) => ({
+      id: `sample-bookmark-${index}`,
+      user_id: 'sample-user',
+      source_type: index % 2 ? 'chat_message' as const : 'journal_entry' as const,
+      source_id: `sample-source-${index}`,
+      content,
+      note,
+      created_at: createdAt,
+      updated_at: createdAt,
+    })) : [],
+  };
+};
+
+const buildSampleTherapyBrief = (scenario: SampleScenario, data: TherapyPreparationData): TherapyBrief => ({
+  feelings: data.chats.length || data.journals.length ? scenario.feelings : 'There are no selected sample chat or journal records to summarize how I have been feeling.',
+  moodPatterns: data.moods.length || data.moodAnalyses.length ? scenario.patterns : 'There are no selected sample mood records to describe mood patterns.',
+  stressors: data.chats.length || data.journals.length ? scenario.stressors : 'There are no selected sample chat or journal records to identify possible stressors.',
+  sleepHabits: data.sleep.length ? scenario.sleep : 'There are no selected sample sleep check-ins to summarize sleep or daily habits.',
+  discussionTopics: data.bookmarks.length ? scenario.topics : data.chats.length || data.journals.length ? scenario.topics : 'There are no selected sample records to suggest discussion topics.',
+  questions: scenario.questions,
+});
+
 const SessionBriefTab = () => {
   const [range, setRange] = useState('14');
   const [startDate, setStartDate] = useState(daysAgo(14));
@@ -105,11 +241,14 @@ const SessionBriefTab = () => {
   const [goals, setGoals] = useState<Array<{ text: string; approved: boolean }>>([]);
   const [sleep, setSleep] = useState({ hours: '', quality: '3', notes: '' });
   const [savingSleep, setSavingSleep] = useState(false);
+  const [sampleIndex, setSampleIndex] = useState(0);
+  const [showingSampleReport, setShowingSampleReport] = useState(false);
   const { toast } = useToast();
 
   const resetReview = () => {
     setPreparedData(null);
     setConsent(false);
+    setShowingSampleReport(false);
   };
 
   const changeRange = (value: string) => {
@@ -137,6 +276,7 @@ const SessionBriefTab = () => {
     }
     setLoading('review');
     setError('');
+    setShowingSampleReport(false);
     try {
       setPreparedData(await collectTherapyPreparationData(startDate, endDate, sources));
     } catch (cause) {
@@ -155,6 +295,7 @@ const SessionBriefTab = () => {
     }
     setLoading('generate');
     setError('');
+    setShowingSampleReport(false);
     try {
       const next = await generateTherapyBrief(preparedData);
       setBrief(next);
@@ -165,6 +306,19 @@ const SessionBriefTab = () => {
     } finally {
       setLoading(null);
     }
+  };
+
+  const generateSampleReport = () => {
+    const scenario = sampleScenarios[sampleIndex % sampleScenarios.length];
+    const sampleData = buildSampleTherapyData(scenario, startDate, endDate, sources);
+    setPreparedData(sampleData);
+    setBrief(buildSampleTherapyBrief(scenario, sampleData));
+    setQuestions(scenario.questions);
+    setConsent(false);
+    setShowingSampleReport(true);
+    setSampleIndex((index) => (index + 1) % sampleScenarios.length);
+    setError('');
+    toast({ title: `Sample report: ${scenario.label}`, description: 'Generated with fictional sample data. Nothing was sent to Gemini.' });
   };
 
   const regenerate = async (key: BriefSectionKey) => {
@@ -287,24 +441,34 @@ const SessionBriefTab = () => {
               {loading === 'review' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
               Review selected records
             </Button>
+            <Button variant="outline" onClick={generateSampleReport} disabled={loading !== null}>
+              <RefreshCcw className="mr-2 h-4 w-4" /> Generate varied sample report
+            </Button>
           </div>
+          <p className="text-xs text-muted-foreground">Cycles through five fictional scenarios and does not use or send your records.</p>
 
           {counts && (
             <div className="rounded-xl border border-[#C7D0C2] bg-[#EEF1EB] p-4">
-              <p className="font-medium">These records will be sent securely to Gemini:</p>
+              <p className="font-medium">{showingSampleReport ? 'Fictional sample records (not sent to Gemini):' : 'These records will be sent securely to Gemini:'}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {(Object.keys(counts) as Array<keyof typeof counts>).map((key) => (
                   <Badge key={key} variant="secondary">{counts[key]} {sourceLabels[key]}</Badge>
                 ))}
               </div>
-              <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm">
-                <Checkbox checked={consent} onCheckedChange={(checked) => setConsent(checked === true)} />
-                <span>I understand that only the selected records above will be sent to Gemini to create this private preparation summary. Nothing will be shared with a therapist or anyone else automatically.</span>
-              </label>
-              <Button className="mt-4" onClick={generateBrief} disabled={!consent || loading !== null}>
-                {loading === 'generate' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                Generate my session brief
-              </Button>
+              {showingSampleReport ? (
+                <p className="mt-4 text-sm text-muted-foreground">This sample is fictional and generated locally for preview only.</p>
+              ) : (
+                <>
+                  <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm">
+                    <Checkbox checked={consent} onCheckedChange={(checked) => setConsent(checked === true)} />
+                    <span>I understand that only the selected records above will be sent to Gemini to create this private preparation summary. Nothing will be shared with a therapist or anyone else automatically.</span>
+                  </label>
+                  <Button className="mt-4" onClick={generateBrief} disabled={!consent || loading !== null}>
+                    {loading === 'generate' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Generate my session brief
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </CardContent>
@@ -442,6 +606,7 @@ const NextStepsTab = () => {
   const [newStep, setNewStep] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [usingLocalFallback, setUsingLocalFallback] = useState(false);
   const { toast } = useToast();
 
   const load = useCallback(async () => {
@@ -451,6 +616,7 @@ const NextStepsTab = () => {
       let saved = await therapyNextStepService.list();
       if (saved.length === 0) saved = await Promise.all(suggestedSteps.map((title, index) => therapyNextStepService.create(title, index)));
       setSteps(saved);
+      setUsingLocalFallback(therapyNextStepService.isUsingLocalFallback());
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your next steps.');
     } finally {
@@ -493,6 +659,7 @@ const NextStepsTab = () => {
     <div className="space-y-6">
       <Card className="border-[#DED3C7] bg-[#F1EAE1]"><CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-primary" /> One small step at a time</CardTitle><CardDescription>No streaks, deadlines, or guilt. Edit the plan, skip what does not apply, and move at your own pace.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3"><Progress value={progress} className="h-2 flex-1" /><span className="text-sm text-muted-foreground">{completed} complete</span></div></CardContent></Card>
       {error && <Alert variant="destructive"><AlertTitle>Database setup needed</AlertTitle><AlertDescription>{error} Apply the new Prepare for Therapy Supabase migration, then try again.</AlertDescription></Alert>}
+      {usingLocalFallback && <Alert><AlertTitle>Saved on this device</AlertTitle><AlertDescription>Your next steps are working and saved in this browser. Apply the Prepare for Therapy Supabase migration to sync them across devices.</AlertDescription></Alert>}
       {!error && <Card><CardContent className="space-y-3 pt-6">{steps.map((step) => <div key={step.id} className={`flex items-center gap-2 rounded-xl border p-3 ${step.skipped ? 'bg-muted/30 opacity-60' : ''}`}><Checkbox checked={step.completed} disabled={step.skipped} onCheckedChange={(checked) => update(step, { completed: checked === true })} aria-label={`Mark ${step.title} complete`} /><Input value={step.title} disabled={step.skipped} onChange={(event) => setSteps(steps.map((item) => item.id === step.id ? { ...item, title: event.target.value } : item))} onBlur={(event) => update(step, { title: event.target.value.trim() || step.title })} className={`border-0 bg-transparent shadow-none ${step.completed ? 'text-muted-foreground line-through' : ''}`} /><Button size="icon" variant="ghost" onClick={() => update(step, { skipped: !step.skipped, completed: false })} aria-label={step.skipped ? 'Restore step' : 'Skip step'}><SkipForward className="h-4 w-4" /></Button><Button size="icon" variant="ghost" onClick={async () => { await therapyNextStepService.remove(step.id); setSteps(steps.filter((item) => item.id !== step.id)); }} aria-label="Remove step"><Trash2 className="h-4 w-4" /></Button></div>)}<Separator /><div className="flex gap-2"><Input value={newStep} onChange={(event) => setNewStep(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && add()} placeholder="Add a step that feels useful..." /><Button onClick={add}><Plus className="mr-2 h-4 w-4" /> Add</Button></div></CardContent></Card>}
     </div>
   );

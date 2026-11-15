@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Trash2, Brain, Sparkles, BookOpen, ChevronDown } from 'lucide-react';
+import { Save, Loader2, Trash2, Brain, Sparkles, BookOpen, ChevronDown, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { journalService, type JournalEntry } from '@/services/supabase';
 import { moodOrchestrator } from '@/services/mood-orchestrator';
 import { MOOD_CATEGORIES } from '@/services/gemini';
+import { detectCurrentSafetyConcern } from '@/lib/safety-language';
 
 interface JournalEntryEditorProps {
   entry: JournalEntry | null;
@@ -284,7 +285,10 @@ const JournalEntryEditor: React.FC<JournalEntryEditorProps> = ({ entry, isOpen, 
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setMoodAnalysis(null);
+                }}
                 placeholder="Give your entry a title..."
               />
               <div className="flex-1 flex gap-6 min-h-0">
@@ -292,14 +296,29 @@ const JournalEntryEditor: React.FC<JournalEntryEditorProps> = ({ entry, isOpen, 
                   <Textarea
                     id="content"
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                    onChange={(e) => {
+                      setContent(e.target.value);
+                      setMoodAnalysis(null);
+                    }}
                     placeholder="What's on your mind? Write freely - AI will analyze your mood automatically when you save."
                     className="w-full flex-1 resize-none"
                     style={{
                       fontFamily: content.startsWith('Prompt:') ? 'monospace' : 'inherit'
                     }}
                   />
-                  {content.length > 20 && !isAnalyzing && !moodAnalysis && (
+                  {detectCurrentSafetyConcern(content) && (
+                    <Alert variant="destructive" className="mt-3" role="status">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-semibold">If this describes you or someone close to you right now, please connect with real-time support.</p>
+                        <p className="mt-1">
+                          In the U.S., call or text <a className="underline" href="tel:988">988</a>. If you may act soon or are in immediate danger, call <a className="underline" href="tel:911">911</a> or go to an emergency department. Outside the U.S., contact local emergency services or find a crisis line at{' '}
+                          <a className="underline" href="https://findahelpline.com/" target="_blank" rel="noreferrer">findahelpline.com</a>.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {content.trim().length >= 20 && !isAnalyzing && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -308,7 +327,7 @@ const JournalEntryEditor: React.FC<JournalEntryEditorProps> = ({ entry, isOpen, 
                       disabled={isAnalyzing}
                     >
                       <Brain className="w-4 h-4 mr-2" />
-                      Preview Mood Analysis
+                      {moodAnalysis ? 'Preview Mood Again' : 'Preview Mood Analysis'}
                     </Button>
                   )}
                   {isAnalyzing && (

@@ -494,22 +494,19 @@ export const dailyMoodService = {
             return await this.upsert(defaultSummary);
         }
 
-        // Calculate aggregated mood data
-        const totalIntensity = analyses.reduce((sum, a) => sum + a.intensity, 0);
-        const totalConfidence = analyses.reduce((sum, a) => sum + a.confidence, 0);
-        const averageIntensity = totalIntensity / analyses.length;
-        const averageConfidence = totalConfidence / analyses.length;
+        // Keep the day's current mood anchored to the newest journal/chat/voice
+        // analysis, while using a recency-weighted average for the trend values.
+        const latestAnalysis = analyses[analyses.length - 1];
+        const totalWeight = analyses.reduce((sum, _analysis, index) => sum + index + 1, 0);
+        const averageIntensity = analyses.reduce((sum, analysis, index) => sum + analysis.intensity * (index + 1), 0) / totalWeight;
+        const averageConfidence = analyses.reduce((sum, analysis, index) => sum + analysis.confidence * (index + 1), 0) / totalWeight;
 
-        // Find most common mood
-        const moodCounts = analyses.reduce((counts, analysis) => {
-            counts[analysis.primary_mood] = (counts[analysis.primary_mood] || 0) + 1;
-            return counts;
-        }, {} as Record<MoodType, number>);
+        // Keep the distribution for analytics, but let the newest entry drive
+        // the label shown as today's current mood.
+        const primaryMood = latestAnalysis.primary_mood;
 
-        const primaryMood = Object.entries(moodCounts).sort(([,a], [,b]) => b - a)[0][0] as MoodType;
-
-        // Collect all unique emotions
-        const allEmotions = [...new Set(analyses.flatMap(a => a.key_emotions))];
+        // Show emotions from the newest entry first, then retain recent context.
+        const allEmotions = [...new Set([...analyses].reverse().flatMap(a => a.key_emotions))];
         const topEmotions = allEmotions.slice(0, 10); // Limit to top 10
 
         // Generate reasoning
@@ -522,7 +519,7 @@ export const dailyMoodService = {
             .map(([source, count]) => `${count} ${source}`)
             .join(', ');
 
-        const reasoning = `Based on ${analyses.length} mood analyses from ${sourcesList}. Most common mood: ${primaryMood}.`;
+        const reasoning = `Based on ${analyses.length} mood analyses from ${sourcesList}. Most recent entry: ${primaryMood}.`;
 
         const summary: Omit<DailyMoodSummary, 'id' | 'user_id' | 'created_at'> = {
             date,
@@ -668,6 +665,29 @@ const requireUser = async () => {
   return user;
 };
 
+const isMissingTherapyStepsTable = (error: { code?: string; message?: string } | null | undefined) =>
+  error?.code === 'PGRST205' ||
+  error?.code === '42P01' ||
+  /therapy_next_steps.*(?:not found|does not exist)|could not find the table.*therapy_next_steps/i.test(error?.message || '');
+
+const therapyStepsStorageKey = (userId: string) => `therabot:therapy-next-steps:${userId}`;
+let usingLocalTherapyStepsFallback = false;
+
+const readLocalTherapySteps = (userId: string): TherapyNextStep[] => {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem(therapyStepsStorageKey(userId)) || '[]') as TherapyNextStep[];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalTherapySteps = (userId: string, steps: TherapyNextStep[]) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(therapyStepsStorageKey(userId), JSON.stringify(steps));
+  }
+};
+
 export const therapyBookmarkService = {
   async list(): Promise<TherapyBookmark[]> {
     const user = await requireUser();
@@ -749,6 +769,10 @@ export const sleepCheckinService = {
 };
 
 export const therapyNextStepService = {
+  isUsingLocalFallback(): boolean {
+    return usingLocalTherapyStepsFallback;
+  },
+
   async list(): Promise<TherapyNextStep[]> {
     const user = await requireUser();
     const { data, error } = await supabase
@@ -756,7 +780,13 @@ export const therapyNextStepService = {
       .select('*')
       .eq('user_id', user.id)
       .order('sort_order', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      if (isMissingTherapyStepsTable(error)) {
+        usingLocalTherapyStepsFallback = true;
+        return readLocalTherapySteps(user.id);
+      }
+      throw error;
+    }
     return data || [];
   },
 
@@ -767,7 +797,16 @@ export const therapyNextStepService = {
       .insert({ title, sort_order: sortOrder, user_id: user.id })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      if (isMissingTherapyStepsTable(error)) {
+        usingLocalTherapyStepsFallback = true;
+        const now = new Date().toISOString();
+        const step: TherapyNextStep = { id: crypto.randomUUID(), user_id: user.id, title, completed: false, skipped: false, sort_order: sortOrder, created_at: now, updated_at: now };
+        writeLocalTherapySteps(user.id, [...readLocalTherapySteps(user.id), step]);
+        return step;
+      }
+      throw error;
+    }
     return data;
   },
 
@@ -780,7 +819,16 @@ export const therapyNextStepService = {
       .eq('user_id', user.id)
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      if (isMissingTherapyStepsTable(error)) {
+        usingLocalTherapyStepsFallback = true;
+        const updated = readLocalTherapySteps(user.id).map((step) => step.id === id ? { ...step, ...changes, updated_at: new Date().toISOString() } : step);
+        writeLocalTherapySteps(user.id, updated);
+        const step = updated.find((item) => item.id === id);
+        if (step) return step;
+      }
+      throw error;
+    }
     return data;
   },
 
@@ -791,6 +839,13 @@ export const therapyNextStepService = {
       .delete()
       .eq('id', id)
       .eq('user_id', user.id);
-    if (error) throw error;
+    if (error) {
+      if (isMissingTherapyStepsTable(error)) {
+        usingLocalTherapyStepsFallback = true;
+        writeLocalTherapySteps(user.id, readLocalTherapySteps(user.id).filter((step) => step.id !== id));
+        return;
+      }
+      throw error;
+    }
   },
 };

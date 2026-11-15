@@ -47,6 +47,18 @@ const suggestions = [
   "I just need someone to talk to",
 ];
 
+function renderAssistantMessage(content: string) {
+  return content.split(/(https:\/\/findahelpline\.com\/?|\b988\b|\b911\b)/g).map((part, index) => {
+    if (part === '988' || part === '911') {
+      return <a key={`${part}-${index}`} className="underline underline-offset-2" href={`tel:${part}`}>{part}</a>;
+    }
+    if (part.startsWith('https://findahelpline.com')) {
+      return <a key={`helpline-${index}`} className="underline underline-offset-2" href="https://findahelpline.com/" target="_blank" rel="noreferrer">findahelpline.com</a>;
+    }
+    return part;
+  });
+}
+
 const TextChat = () => {
   const { user } = useAuth();
 
@@ -673,7 +685,7 @@ const TextChat = () => {
                         }`}
                       >
                         <p className="whitespace-pre-wrap break-words">
-                          {message.content}
+                          {message.role === 'model' ? renderAssistantMessage(message.content) : message.content}
                         </p>
                       </div>
                       {message.id && !message.id.startsWith("error-") && (

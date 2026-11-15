@@ -1,6 +1,8 @@
 import { analyzeMoodFromText, combineMoodAnalyses, type MoodAnalysis } from './gemini';
 import { moodAnalysisService, dailyMoodService, journalService, type MoodAnalysisEntry } from './supabase';
 
+export const MOOD_SUMMARY_UPDATED_EVENT = 'therabot:mood-summary-updated';
+
 /**
  * Central service for mood analysis orchestration
  * Handles the flow from text input -> Gemini analysis -> database storage -> daily summary updates
@@ -18,8 +20,8 @@ export class MoodOrchestrator {
     /**
      * Analyzes mood from chat conversation and stores results
      */
-    async analyzeChatMessage(messageId: string, content: string, duration?: number): Promise<MoodAnalysisEntry> {
-        const analysis = await analyzeMoodFromText(content, 'chat');
+    async analyzeChatMessage(messageId: string, content: string, duration?: number, context?: string): Promise<MoodAnalysisEntry> {
+        const analysis = await analyzeMoodFromText(content, 'chat', context);
         return this.saveAnalysis(analysis, messageId, content, duration);
     }
 
@@ -236,7 +238,7 @@ export class MoodOrchestrator {
           analysis = await this.analyzeJournalEntry(sourceId, content, duration);
           break;
         case 'chat':
-          analysis = await this.analyzeChatMessage(sourceId, content, duration);
+          analysis = await this.analyzeChatMessage(sourceId, content, duration, context);
           break;
         case 'voice':
           analysis = await this.analyzeVoiceSession(sourceId, content, duration);
@@ -246,6 +248,10 @@ export class MoodOrchestrator {
       }
 
       const todaysSummary = await this.getTodaysMoodSummary();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(MOOD_SUMMARY_UPDATED_EVENT));
+      }
 
       return {
         analysis,

@@ -10,7 +10,7 @@ import {
   Heart,
   Sparkles,
 } from 'lucide-react';
-import { moodOrchestrator } from '@/services/mood-orchestrator';
+import { MOOD_SUMMARY_UPDATED_EVENT, moodOrchestrator } from '@/services/mood-orchestrator';
 import { processMoodData } from '@/lib/mood-processing';
 import { format } from 'date-fns';
 
@@ -127,9 +127,11 @@ const DashboardHome = () => {
     };
 
     fetchMoodData();
+    window.addEventListener(MOOD_SUMMARY_UPDATED_EVENT, fetchMoodData);
 
     return () => {
       active = false;
+      window.removeEventListener(MOOD_SUMMARY_UPDATED_EVENT, fetchMoodData);
     };
   }, []);
 
