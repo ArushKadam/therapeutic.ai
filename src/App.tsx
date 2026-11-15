@@ -1,17 +1,26 @@
+
+import { useCallback, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AuthPage from "./pages/AuthPage";
+import TethrIntro from "./components/TethrIntro";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const { session, loading } = useAuth();
+  const [introComplete, setIntroComplete] = useState(false);
+
+  const finishIntro = useCallback(() => {
+    setIntroComplete(true);
+  }, []);
 
   if (loading) {
     return (
@@ -23,6 +32,10 @@ const AppRoutes = () => {
 
   return (
     <BrowserRouter>
+      {session && !introComplete && (
+        <TethrIntro onComplete={finishIntro} />
+      )}
+
       <Routes>
         {session ? (
           <>
@@ -41,7 +54,7 @@ const AppRoutes = () => {
         ) : (
           <Route path="/*" element={<AuthPage />} />
         )}
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

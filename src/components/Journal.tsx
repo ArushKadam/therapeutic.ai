@@ -1,17 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, BookOpen, Edit, Brain, Sparkles, PenTool } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { journalService, type JournalEntry } from '@/services/supabase';
-import JournalEntryEditor from './JournalEntryEditor';
-import JournalPromptSelector from './JournalPromptSelector';
-import Resources from "@/components/Resources";
-import { JournalPrompt } from '@/services/journalPrompts';
-import TalkAboutThisButton from '@/components/TalkAboutThisButton';
+
+import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  BookOpen,
+  Pencil,
+  Brain,
+  Sparkles,
+  ArrowUpRight,
+  CalendarDays,
+  PenLine,
+  RefreshCw,
+} from "lucide-react";
+import { journalService, type JournalEntry } from "@/services/supabase";
+import JournalEntryEditor from "./JournalEntryEditor";
+import JournalPromptSelector from "./JournalPromptSelector";
+import type { JournalPrompt } from "@/services/journalPrompts";
+import TalkAboutThisButton from "./TalkAboutThisButton";
 
 const Journal = () => {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -24,204 +29,415 @@ const Journal = () => {
 
   const fetchEntries = useCallback(async () => {
     try {
-      console.log('Fetching journal entries...');
       setLoading(true);
-      setError(null); // Clear any previous errors
+      setError(null);
+
       const entries = await journalService.list();
-      console.log('Journal entries fetched:', entries.length);
-      setJournalEntries(entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-    } catch (error) {
-      console.error("Error fetching journal entries:", error);
-      setError(`Failed to load journal entries: ${error.message}`);
+
+      setJournalEntries(
+        [...entries].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime()
+        )
+      );
+    } catch (err) {
+      console.error("Error fetching journal entries:", err);
+      setError(
+        err instanceof Error
+          ? `Failed to load journal entries: ${err.message}`
+          : "Failed to load journal entries."
+      );
     } finally {
       setLoading(false);
-      console.log('Loading set to false');
     }
   }, []);
 
   useEffect(() => {
-    fetchEntries();
+    void fetchEntries();
   }, [fetchEntries]);
-  
+
   const handleNewEntry = () => {
-    console.log('Journal: handleNewEntry called');
-    // Always open a blank editor for new entry
     setSelectedEntry(null);
     setIsEditorOpen(true);
     setIsPromptSelectorOpen(false);
-    console.log('Journal: Editor should be open for free writing');
   };
 
   const handlePromptMe = () => {
-    // Open the prompt selector modal
     setIsPromptSelectorOpen(true);
   };
 
   const handleSelectPrompt = (prompt: JournalPrompt) => {
-    console.log('Selected prompt:', prompt.text);
-    console.log('About to create temp entry...');
-    // Create a temporary entry object with the prompt data
     const tempEntry = {
       id: null,
       title: `Journal Entry - ${prompt.category}`,
       content: `Prompt: ${prompt.text}\n\n`,
       created_at: new Date().toISOString(),
-      user_id: '',
+      user_id: "",
       mood: null,
       ai_analysis: null,
-      _isPromptBased: true // Custom flag to identify prompt-based entries
+      _isPromptBased: true,
     };
-    console.log('Created temp entry:', tempEntry);
-    setSelectedEntry(tempEntry as any);
-    console.log('Set selected entry, about to open editor...');
+
+    setSelectedEntry(tempEntry as unknown as JournalEntry);
     setIsEditorOpen(true);
     setIsPromptSelectorOpen(false);
-    console.log('Editor should be open now');
   };
 
   const handleEditEntry = (entry: JournalEntry) => {
-    console.log('Editing journal entry:', entry.id);
     setSelectedEntry(entry);
     setIsEditorOpen(true);
   };
 
   const handleCloseEditor = () => {
-    console.log('Closing journal editor...');
     setIsEditorOpen(false);
     setSelectedEntry(null);
   };
 
   const handleSave = async () => {
-    console.log('Journal handleSave called, refreshing entries...');
     setIsSaving(true);
+
     try {
-      // Refresh entries immediately
       await fetchEntries();
-      console.log('Entries refreshed successfully');
-    } catch (error) {
-      console.error('Error refreshing entries:', error);
-      setError(`Failed to refresh entries: ${error.message}`);
+    } catch (err) {
+      console.error("Error refreshing entries:", err);
     } finally {
       setIsSaving(false);
     }
   };
 
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const formatShortDate = (date: string) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <>
-      <div className="h-full flex flex-col space-y-6 pt-6">
-        <Card className="bg-gradient-to-br from-primary/10 to-transparent">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold">Today's Reflection</CardTitle>
-            <CardDescription>A quiet space for your thoughts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" className="flex-1" onClick={handlePromptMe}>
-                <Sparkles className="mr-2 h-5 w-5" />
-                Prompt Me
-              </Button>
-              <Button variant="outline" size="lg" className="flex-1" onClick={handleNewEntry}>
-                <Plus className="mr-2 h-5 w-5" />
-                Write Freely
-              </Button>
+      <div
+        className="min-h-full w-full bg-[#F5F0E9] text-[#302A26]"
+        style={{
+          fontFamily:
+            "Inter, ui-sans-serif, system-ui, sans-serif",
+        }}
+      >
+        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-9 lg:px-12 lg:py-11">
+
+          {/* PAGE HEADER */}
+          <motion.header
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="border-b border-[#DCD1C6] pb-9"
+          >
+            <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.28em] text-[#937E6B]">
+              JOURNAL / YOUR REFLECTIONS
             </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              Choose to write freely or get inspired with thoughtful prompts.
-            </p>
-          </CardContent>
-        </Card>
 
-        <Separator />
+            <div className="flex flex-wrap items-end justify-between gap-5">
+              <div>
+                <h1 className="text-3xl font-black tracking-[-0.055em] sm:text-4xl lg:text-[46px]">
+                  Today's Reflection.
+                </h1>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <BookOpen className="mr-3 h-6 w-6 text-primary" />
-            Journal History
-          </h2>
-          <ScrollArea className="flex-1 pr-4 -mr-4">
-            {error ? (
-              <div className="flex flex-1 items-center justify-center rounded-lg border border-destructive/50 bg-destructive/10 shadow-sm h-full py-24">
-                <div className="flex flex-col items-center gap-1 text-center">
-                  <h3 className="text-2xl font-bold tracking-tight text-destructive">
-                    Error Loading Entries
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {error}
-                  </p>
-                  <Button variant="outline" onClick={fetchEntries}>
-                    Try Again
-                  </Button>
+                <p className="mt-2 text-sm text-[#7F7268]">
+                  A quiet space for your thoughts.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.13em] text-[#75675C]">
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+                <CalendarDays size={17} strokeWidth={1.7} />
+              </div>
+            </div>
+          </motion.header>
+
+          {/* WRITING OPTIONS */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.08 }}
+            className="border-b border-[#DCD1C6] py-10"
+          >
+            <div className="mb-7">
+              <h2 className="text-xl font-extrabold tracking-tight">
+                Make room for your thoughts.
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-[#87776C]">
+                Choose to write freely or get inspired with thoughtful prompts.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+
+              {/* PROMPT ME */}
+              <button
+                onClick={handlePromptMe}
+                className="group flex min-h-[190px] flex-col justify-between rounded-2xl border border-[#DED3C7] bg-[#E9DFD4] p-6 text-left transition-all duration-300 hover:border-[#B9A593] hover:bg-[#E3D7CA]"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F5F0E9]">
+                    <Sparkles
+                      size={21}
+                      strokeWidth={1.6}
+                      className="text-[#937E6B]"
+                    />
+                  </div>
+
+                  <ArrowUpRight
+                    size={19}
+                    className="text-[#937E6B] transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1"
+                  />
                 </div>
+
+                <div>
+                  <h3 className="text-xl font-extrabold tracking-tight">
+                    Prompt Me
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-[#87776C]">
+                    Find inspiration through a thoughtful question.
+                  </p>
+                </div>
+              </button>
+
+              {/* WRITE FREELY */}
+              <button
+                onClick={handleNewEntry}
+                className="group flex min-h-[190px] flex-col justify-between rounded-2xl border border-[#DED3C7] bg-[#FAF7F2] p-6 text-left transition-all duration-300 hover:border-[#B9A593] hover:bg-[#F0E9E0]"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E9DFD4]">
+                    <PenLine
+                      size={21}
+                      strokeWidth={1.6}
+                      className="text-[#937E6B]"
+                    />
+                  </div>
+
+                  <ArrowUpRight
+                    size={19}
+                    className="text-[#937E6B] transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1"
+                  />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-extrabold tracking-tight">
+                    Write Freely
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-[#87776C]">
+                    No prompts, no expectations. Just your thoughts.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </motion.section>
+
+          {/* JOURNAL HISTORY */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.16 }}
+            className="py-10"
+          >
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="flex items-center gap-3 text-xl font-extrabold tracking-tight">
+                  <BookOpen
+                    size={21}
+                    strokeWidth={1.7}
+                    className="text-[#937E6B]"
+                  />
+                  Journal History
+                </h2>
+
+                <p className="mt-2 pl-8 text-xs text-[#87776C]">
+                  A collection of your personal reflections.
+                </p>
+              </div>
+
+              {!loading && !error && journalEntries.length > 0 && (
+                <span className="rounded-full bg-[#E9DFD4] px-4 py-2 text-[11px] font-semibold text-[#796353]">
+                  {journalEntries.length}{" "}
+                  {journalEntries.length === 1 ? "Entry" : "Entries"}
+                </span>
+              )}
+            </div>
+
+            {/* ERROR STATE */}
+            {error ? (
+              <div className="rounded-2xl border border-[#D7B7AD] bg-[#F3E5E0] px-6 py-12 text-center">
+                <h3 className="text-lg font-bold text-[#9B4943]">
+                  Unable to load your journal.
+                </h3>
+
+                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#87776C]">
+                  {error}
+                </p>
+
+                <button
+                  onClick={() => void fetchEntries()}
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#302A26] px-5 py-3 text-sm font-semibold text-[#F5F0E9] transition hover:bg-[#4A3D34]"
+                >
+                  <RefreshCw size={15} />
+                  Try Again
+                </button>
               </div>
             ) : loading || isSaving ? (
-              <div className="flex items-center justify-center h-24">
-                <p>{isSaving ? 'Saving entry...' : 'Loading entries...'}</p>
-              </div>
-            ) : journalEntries.length > 0 ? (
-              <div className="space-y-4">
-                {journalEntries.map((entry, index) => (
-                  <div key={entry.id}>
-                    <Card className="hover:shadow-md transition-shadow group">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">{entry.title}</CardTitle>
-                            <CardDescription>
-                              {new Date(entry.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                              {entry.mood && ` - Feeling ${entry.mood}`}
-                            </CardDescription>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <TalkAboutThisButton
-                              sourceType="journal_entry"
-                              sourceId={entry.id}
-                              content={`${entry.title}\n\n${entry.content}`}
-                              className="h-8 px-2 text-xs text-muted-foreground"
-                            />
-                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleEditEntry(entry)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground line-clamp-2">{entry.content}</p>
-                        {entry.ai_analysis && (
-                          <div className="mt-3 pt-3 border-t border-border/50">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs font-medium text-primary">AI Analysis:</span>
-                              <Badge variant="outline" className="text-xs">
-                                <Brain className="w-3 h-3 mr-1" />
-                                Mood Detected
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{entry.ai_analysis}</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-full py-24">
-                <div className="flex flex-col items-center gap-1 text-center">
-                  <h3 className="text-2xl font-bold tracking-tight">
-                    You have no journal entries
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Start a new entry to begin your reflection.
+
+              /* LOADING STATE */
+              <div className="flex min-h-[300px] items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-5 h-8 w-8 animate-spin rounded-full border-2 border-[#DCD1C6] border-t-[#937E6B]" />
+
+                  <p className="text-sm text-[#87776C]">
+                    {isSaving
+                      ? "Saving your reflection..."
+                      : "Loading your reflections..."}
                   </p>
-                  <Button className="mt-4" onClick={handleNewEntry}>
-                    <Plus className="mr-2 h-4 w-4" /> New Entry
-                  </Button>
                 </div>
               </div>
+
+            ) : journalEntries.length > 0 ? (
+
+              /* SAVED JOURNAL ENTRIES */
+              <div className="space-y-3">
+                {journalEntries.map((entry, index) => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.3,
+                      delay: Math.min(index * 0.05, 0.3),
+                    }}
+                    className="group rounded-xl border border-[#DED3C7] bg-[#FAF7F2] p-6 transition-all duration-300 hover:border-[#B9A593] hover:bg-[#F1EAE1]"
+                  >
+                    <div className="flex items-start justify-between gap-5">
+                      <div className="min-w-0 flex-1">
+
+                        <div className="mb-3 flex flex-wrap items-center gap-3">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#937E6B]">
+                            {formatShortDate(entry.created_at)}
+                          </span>
+
+                          {entry.mood && (
+                            <span className="rounded-full border border-[#D8C9B9] px-3 py-1 text-[10px] font-semibold capitalize text-[#796353]">
+                              {entry.mood}
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="text-lg font-extrabold tracking-tight">
+                          {entry.title}
+                        </h3>
+
+                        <p className="mt-2 text-xs text-[#87776C]">
+                          {formatDate(entry.created_at)}
+                        </p>
+
+                        <p className="mt-4 line-clamp-3 whitespace-pre-wrap break-words text-sm leading-7 text-[#66584E]">
+                          {entry.content}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <button
+                          onClick={() => handleEditEntry(entry)}
+                          aria-label={`Edit ${entry.title}`}
+                          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#DED3C7] text-[#937E6B] transition hover:bg-[#E9DFD4]"
+                        >
+                          <Pencil size={16} strokeWidth={1.7} />
+                        </button>
+                        <TalkAboutThisButton
+                          sourceType="journal_entry"
+                          sourceId={entry.id}
+                          content={entry.content}
+                          className="h-8 px-2 text-[10px] text-[#796353]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* AI ANALYSIS */}
+                    {entry.ai_analysis && (
+                      <div className="mt-6 border-t border-[#DED3C7] pt-5">
+                        <div className="mb-3 flex items-center gap-2">
+                          <Brain
+                            size={16}
+                            className="text-[#937E6B]"
+                          />
+
+                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#937E6B]">
+                            AI Analysis
+                          </span>
+
+                          <span className="ml-auto rounded-full bg-[#E9DFD4] px-3 py-1 text-[10px] font-semibold text-[#796353]">
+                            Mood Detected
+                          </span>
+                        </div>
+
+                        <p className="text-xs leading-6 text-[#66584E]">
+                          {entry.ai_analysis}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+
+            ) : (
+
+              /* EMPTY JOURNAL STATE */
+              <div className="flex min-h-[350px] flex-col items-center justify-center rounded-2xl border border-[#DED3C7] bg-[#F0E9E0] px-6 py-12 text-center">
+
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5D9CD]">
+                  <BookOpen
+                    size={28}
+                    strokeWidth={1.4}
+                    className="text-[#937E6B]"
+                  />
+                </div>
+
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-[#937E6B]">
+                  YOUR STORY STARTS HERE
+                </p>
+
+                <h3 className="text-2xl font-black tracking-tight sm:text-3xl">
+                  A blank page, just for you.
+                </h3>
+
+                <p className="mt-3 max-w-sm text-sm leading-7 text-[#87776C]">
+                  You haven't written anything yet.
+                  Take a moment to reflect, however you'd like.
+                </p>
+
+                <button
+                  onClick={handleNewEntry}
+                  className="mt-7 flex items-center gap-2 rounded-lg bg-[#302A26] px-6 py-3 text-sm font-semibold text-[#F5F0E9] transition-colors hover:bg-[#4A3D34]"
+                >
+                  <Plus size={17} />
+                  Start Writing
+                </button>
+              </div>
             )}
-          </ScrollArea>
+          </motion.section>
         </div>
       </div>
 
+      {/* EXISTING JOURNAL EDITOR */}
       <JournalEntryEditor
         entry={selectedEntry}
         isOpen={isEditorOpen}
@@ -229,6 +445,7 @@ const Journal = () => {
         onSave={handleSave}
       />
 
+      {/* EXISTING PROMPT SELECTOR */}
       {isPromptSelectorOpen && (
         <JournalPromptSelector
           onSelectPrompt={handleSelectPrompt}

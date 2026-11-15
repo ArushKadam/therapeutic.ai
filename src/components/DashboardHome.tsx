@@ -1,315 +1,580 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from "framer-motion";
-import { Heart, TrendingUp, Activity, Calendar, MessageCircle, Mic, BarChart3, Brain, Sparkles, TrendingDown, BookOpen } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Activity,
+  ArrowUpRight,
+  BarChart3,
+  Brain,
+  CalendarDays,
+  Heart,
+  Sparkles,
+} from 'lucide-react';
 import { moodOrchestrator } from '@/services/mood-orchestrator';
 import { processMoodData } from '@/lib/mood-processing';
-import { MOOD_CATEGORIES } from '@/services/gemini';
 import { format } from 'date-fns';
 
+const ink = '#302a26';
+const muted = '#87776c';
+const sage = '#788b73';
+
+// Custom taupe mood faces
+function MoodFace({
+  mood,
+  size = 42,
+}: {
+  mood?: string | null;
+  size?: number;
+}) {
+  const name = (mood || '').toLowerCase();
+
+  const happy = /happy|joy|positive|excited|calm|content|grateful/.test(name);
+  const sad = /sad|down|depress|hurt|hopeless|distress|anxious|fear|worr/.test(name);
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      role="img"
+      aria-label={`${mood || 'Neutral'} mood`}
+    >
+      <circle
+        cx="24"
+        cy="24"
+        r="21"
+        fill="#D4BDA5"
+        stroke="#B89F87"
+        strokeWidth="1"
+      />
+      <circle cx="17" cy="19" r="2" fill={ink} />
+      <circle cx="31" cy="19" r="2" fill={ink} />
+      <path
+        d={
+          happy
+            ? 'M15 28 Q24 37 33 28'
+            : sad
+            ? 'M15 34 Q24 25 33 34'
+            : 'M16 30 Q24 29 32 30'
+        }
+        fill="none"
+        stroke={ink}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+// Minimal action button
+const Action = ({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="inline-flex items-center gap-2 rounded-full border border-[#d9cfc5] px-4 py-2 text-xs font-semibold text-[#453c36] transition-colors hover:bg-[#e8ded3]"
+  >
+    {children}
+    <ArrowUpRight size={13} />
+  </button>
+);
+
 const DashboardHome = () => {
-  const [stats, setStats] = useState([]);
-  const [weeklyMoodData, setWeeklyMoodData] = useState([]);
-  const [insights, setInsights] = useState([]);
-  const [todaysMood, setTodaysMood] = useState(null);
+  const [stats, setStats] = useState<any[]>([]);
+  const [weeklyMoodData, setWeeklyMoodData] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
+  const [todaysMood, setTodaysMood] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+
   const navigate = useNavigate();
-  const [recentAnalyses, setRecentAnalyses] = useState([]);
 
   useEffect(() => {
+    let active = true;
+
     const fetchMoodData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Get comprehensive mood analytics with 30 days for better insights
+
         const analytics = await moodOrchestrator.getMoodAnalytics(30);
-        const { stats, weeklyData, insights } = processMoodData(analytics.summaries);
-        
-        setStats(stats);
-        setWeeklyMoodData(weeklyData); // Show all data instead of slicing
-        setInsights(insights); // Show all insights instead of limiting
+        const processed = processMoodData(analytics.summaries);
+
+        if (!active) return;
+
+        setStats(processed.stats || []);
+        setWeeklyMoodData(processed.weeklyData || []);
+        setInsights(processed.insights || []);
         setTodaysMood(analytics.todaysSummary);
-        setRecentAnalyses(analytics.recentAnalyses || []);
-      } catch (error) {
-        console.error("Error fetching mood analytics:", error);
-        setError("Unable to load mood data. Please try again.");
-        // Set fallback data
-        setStats([
-          { icon: Calendar, label: "Days Tracked", value: "0", color: "text-blue-500" },
-          { icon: Heart, label: "Positive Days", value: "0%", color: "text-green-500" },
-          { icon: TrendingUp, label: "Mood Trend", value: "N/A", color: "text-primary" }
-        ]);
-        setWeeklyMoodData([]);
-        setInsights(["Start tracking your mood to see insights."]);
+      } catch (err) {
+        console.error('Error fetching mood analytics:', err);
+
+        if (active) {
+          setError('Unable to load mood data. Please try again.');
+          setStats([]);
+          setWeeklyMoodData([]);
+          setInsights([]);
+          setTodaysMood(null);
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     fetchMoodData();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const StatCard = ({ icon: Icon, label, value, color, trend = null }) => (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-        <Icon className={`w-8 h-8 mb-3 ${color || 'text-primary'}`} />
-        <div className="text-3xl font-bold text-foreground mb-1">{value}</div>
-        <div className="text-sm text-muted-foreground">{label}</div>
-        {trend && (
-          <Badge variant={trend.type === 'positive' ? 'default' : trend.type === 'negative' ? 'destructive' : 'secondary'} className="mt-2 text-xs">
-            {trend.type === 'positive' && <TrendingUp className="w-3 h-3 mr-1" />}
-            {trend.type === 'negative' && <TrendingDown className="w-3 h-3 mr-1" />}
-            {trend.text}
-          </Badge>
-        )}
-      </CardContent>
-    </Card>
+  // Prepare recorded mood data
+  const days = useMemo(
+    () =>
+      weeklyMoodData.map((day: any, index: number) => {
+        const recorded = Number(day.analysisCount || 0) > 0;
+
+        const intensity =
+          recorded && Number.isFinite(Number(day.intensity))
+            ? Math.max(0, Math.min(10, Number(day.intensity)))
+            : null;
+
+        return {
+          ...day,
+          id: `${day.day}-${index}`,
+          recorded,
+          intensity,
+        };
+      }),
+    [weeklyMoodData]
   );
 
-  const TodayMoodCard = () => {
-    if (!todaysMood || todaysMood.analysis_count === 0) {
-      return (
-        <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="w-5 h-5 text-primary" />
-              <span>Today's Mood Analysis</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-6">
-              <div className="text-4xl mb-3">😐</div>
-              <h3 className="font-semibold mb-2">No mood data for today</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Your mood will be analyzed automatically as you use the app.
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <Button size="sm" onClick={() => navigate("/journal")} className="flex items-center gap-1">
-                  <BookOpen className="w-3 h-3" />
-                  Journal Entry
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => navigate("/voice")} className="flex items-center gap-1">
-                  <Mic className="w-3 h-3" />
-                  Voice Session
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => navigate("/chat")} className="flex items-center gap-1">
-                  <MessageCircle className="w-3 h-3" />
-                  AI Chat
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      );
+  // Graph coordinates
+  const points = days.map((day, i) => ({
+    x: days.length === 1 ? 50 : 6 + (i * 88) / (days.length - 1),
+    y: day.intensity === null ? null : 94 - day.intensity * 8.4,
+  }));
+
+  const segments: string[] = [];
+  let current: string[] = [];
+
+  points.forEach((p) => {
+    if (p.y === null) {
+      if (current.length) segments.push(current.join(' '));
+      current = [];
+    } else {
+      current.push(`${current.length ? 'L' : 'M'} ${p.x} ${p.y}`);
     }
+  });
 
-    const moodMeta = MOOD_CATEGORIES[todaysMood.primary_mood];
-    const confidenceColor = todaysMood.overall_confidence > 0.7 ? 'text-green-500' : 
-                            todaysMood.overall_confidence > 0.4 ? 'text-yellow-500' : 'text-red-500';
+  if (current.length) segments.push(current.join(' '));
 
-    return (
-      <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-primary" />
-            <span>Today's Mood Analysis</span>
-            <Badge variant="secondary" className="ml-auto">
-              <Sparkles className="w-3 h-3 mr-1" />
-              AI Analyzed
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-5xl">{moodMeta.emoji}</div>
-              <div>
-                <div className="font-bold text-xl capitalize">{todaysMood.primary_mood}</div>
-                <div className="text-muted-foreground">
-                  Intensity: <span className="font-medium">{todaysMood.average_intensity}/10</span>
-                </div>
-                <div className={`text-sm ${confidenceColor}`}>
-                  {Math.round(todaysMood.overall_confidence * 100)}% confidence
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">{todaysMood.analysis_count}</span> analyses
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Updated {new Date(todaysMood.last_updated).toLocaleTimeString()}
-              </div>
-            </div>
-          </div>
-          
-          {todaysMood.key_emotions && todaysMood.key_emotions.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border/50">
-              <div className="text-sm text-muted-foreground mb-2">Key emotions detected:</div>
-              <div className="flex flex-wrap gap-1">
-                {todaysMood.key_emotions.slice(0, 6).map((emotion, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {emotion}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-            <div className="text-xs text-muted-foreground mb-1">AI Analysis:</div>
-            <p className="text-sm">{todaysMood.reasoning}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+  const hasToday =
+    !!todaysMood && Number(todaysMood.analysis_count) > 0;
+
+  const statFallbacks = [
+    { label: 'Days Tracked', value: '0', icon: CalendarDays },
+    { label: 'Positive Days', value: '0%', icon: Heart },
+    { label: 'Mood Trend', value: 'N/A', icon: Activity },
+  ];
+
+  const displayStats = statFallbacks.map((fallback) => ({
+    ...fallback,
+    ...(stats.find((s: any) => s.label === fallback.label) || {}),
+    icon: fallback.icon,
+  }));
 
   return (
-    <div className="space-y-8 pt-6">
-      {/* Welcome Section */}
-      <div className="p-6 bg-secondary/50 rounded-lg">
-        <h2 className="text-3xl font-light text-foreground mb-2">
-          Welcome back to your safe space
-        </h2>
-        <p className="text-muted-foreground">
-          Take a moment to check in with yourself. How are you feeling today?
-        </p>
-      </div>
+    <div
+      className="min-h-full w-full bg-[#f5f0e9] text-[#302a26]"
+      style={{
+        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      }}
+    >
+      <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-9 lg:px-12 lg:py-11">
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Loading your mood analytics...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8">
-          <p className="text-red-500 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      ) : (
-        <>
-          {/* Today's Mood Analysis */}
-          <TodayMoodCard />
+        {/* HEADER */}
+        <header className="flex flex-wrap items-start justify-between gap-5 border-b border-[#dcd1c6] pb-8">
+          <div>
+            <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.28em] text-[#937e6b]">
+              Dashboard / Your overview
+            </div>
 
-          {/* Stats Cards */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {stats.length > 0 ? (
-              stats.map(stat => <StatCard key={stat.label} {...stat} />)
-            ) : (
-              <>
-                <StatCard icon={Calendar} label="Days Tracked" value="0" color="text-blue-500" />
-                <StatCard icon={Heart} label="Positive Days" value="0%" color="text-green-500" />
-                <StatCard icon={Activity} label="Mood Trend" value="N/A" color="text-primary" />
-              </>
-            )}
+            <h1 className="text-3xl font-black tracking-[-0.055em] sm:text-4xl lg:text-[46px]">
+              Welcome back.
+            </h1>
+
+            <p className="mt-2 text-sm text-[#7f7268]">
+              Take a moment to check in with yourself. How are you feeling today?
+            </p>
           </div>
 
-          {/* Recent Mood Journey */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                <span>Recent Mood Journey</span>
-                <Badge variant="secondary" className="ml-auto">
-                  <Brain className="w-3 h-3 mr-1" />
-                  AI Powered
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {weeklyMoodData.length > 0 ? (
-                <div className="space-y-4">
-                  {weeklyMoodData.map(day => (
-                    <div key={day.day} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="w-12 text-center font-medium text-sm text-muted-foreground">{day.day}</div>
-                      <div className="text-2xl">{day.emoji}</div>
-                      <div className="font-medium capitalize text-sm w-24">{day.mood}</div>
-                      <div className="flex-1 bg-muted rounded-full h-3">
-                        <div className={`h-3 rounded-full ${day.color}`} style={{ width: `${day.intensity * 10}%` }} />
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.13em] text-[#75675c]">
+            {format(new Date(), 'EEE, MMM d')}
+            <CalendarDays size={17} strokeWidth={1.7} />
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="py-24 text-center text-sm text-[#87776c]">
+            Loading your mood analytics…
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center">
+            <p className="mb-4 text-sm text-[#9b4943]">{error}</p>
+            <Action onClick={() => window.location.reload()}>
+              Try again
+            </Action>
+          </div>
+        ) : (
+          <>
+            {/* TODAY'S MOOD + STATS */}
+            <section className="grid gap-10 border-b border-[#dcd1c6] py-9 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-12">
+              <div>
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="flex items-center gap-3 text-lg font-extrabold tracking-tight">
+                    <Brain size={20} color={muted} />
+                    Today's Mood Analysis
+                  </h2>
+
+                  {hasToday && (
+                    <span className="rounded-full bg-[#e9dfd4] px-3 py-1 text-[10px] font-semibold text-[#796353]">
+                      ✧ AI Analyzed
+                    </span>
+                  )}
+                </div>
+
+                {hasToday ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <MoodFace
+                        mood={todaysMood.primary_mood}
+                        size={56}
+                      />
+
+                      <div className="border-l border-[#d5c8bb] pl-4">
+                        <div className="text-xl font-extrabold capitalize">
+                          {todaysMood.primary_mood || 'Unknown'}
+                        </div>
+
+                        <div className="mt-0.5 text-sm text-[#7e7166]">
+                          Intensity: {todaysMood.average_intensity}/10
+                        </div>
+
+                        <div className="mt-1 text-xs font-semibold text-[#5f795c]">
+                          {Math.round(
+                            Number(todaysMood.overall_confidence || 0) * 100
+                          )}% confidence
+                        </div>
                       </div>
-                      <span className="text-sm text-muted-foreground w-12 text-right">{day.intensity}/10</span>
-                      {day.analysisCount > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {day.analysisCount}x
-                        </Badge>
-                      )}
+
+                      <div className="ml-auto text-right text-xs leading-5 text-[#87776c]">
+                        <div>{todaysMood.analysis_count} analyses</div>
+
+                        {todaysMood.last_updated && (
+                          <div>
+                            Updated{' '}
+                            {new Date(
+                              todaysMood.last_updated
+                            ).toLocaleTimeString([], {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ))}
+
+                    {!!todaysMood.key_emotions?.length && (
+                      <div className="mt-6 border-t border-[#e1d8ce] pt-4">
+                        <div className="mb-2 text-xs text-[#87776c]">
+                          Key emotions detected
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {todaysMood.key_emotions
+                            .slice(0, 6)
+                            .map((emotion: string, i: number) => (
+                              <span
+                                key={`${emotion}-${i}`}
+                                className="rounded-full border border-[#d8c9b9] px-3 py-1 text-[11px] capitalize"
+                              >
+                                {emotion}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {todaysMood.reasoning && (
+                      <div className="mt-5 rounded-xl bg-[#ebe3d9] px-4 py-3">
+                        <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#8c7765]">
+                          AI Analysis
+                        </div>
+
+                        <p className="text-xs leading-relaxed text-[#584b42]">
+                          {todaysMood.reasoning}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-2">
+                    <div className="text-xl font-bold">
+                      No mood data for today
+                    </div>
+
+                    <p className="mt-2 max-w-md text-sm leading-6 text-[#87776c]">
+                      Your mood will be analyzed automatically as you use the app.
+                    </p>
+
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <Action onClick={() => navigate('/journal')}>
+                        Journal Entry
+                      </Action>
+                      <Action onClick={() => navigate('/voice')}>
+                        Voice Session
+                      </Action>
+                      <Action onClick={() => navigate('/chat')}>
+                        AI Chat
+                      </Action>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* STATISTICS */}
+              <div className="grid grid-cols-3 items-center gap-2 border-t border-[#dcd1c6] pt-7 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
+                {displayStats.map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="text-center">
+                    <Icon
+                      className="mx-auto mb-4 h-6 w-6 text-[#937e6b]"
+                      strokeWidth={1.6}
+                    />
+
+                    <div className="text-2xl font-black tracking-tight sm:text-3xl">
+                      {value}
+                    </div>
+
+                    <div className="mt-1 text-[11px] leading-4 text-[#87776c]">
+                      {label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* MOOD JOURNEY */}
+            <section className="border-b border-[#dcd1c6] py-9">
+              <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-3 text-lg font-extrabold tracking-tight">
+                    <BarChart3 size={20} color={muted} />
+                    Recent Mood Journey
+                  </h2>
+
+                  <p className="mt-1 pl-8 text-xs text-[#87776c]">
+                    Your mood over the past 7 days.
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-[#e9dfd4] px-3 py-1 text-[10px] font-semibold text-[#796353]">
+                  AI Powered
+                </span>
+              </div>
+
+              {days.some(
+                (d) => d.recorded && d.intensity !== null
+              ) ? (
+                <div className="w-full overflow-hidden rounded-xl bg-[#f0e9e0] px-3 py-5 sm:px-6">
+                  <svg
+                    viewBox="0 0 100 116"
+                    preserveAspectRatio="none"
+                    className="h-[190px] w-full"
+                    role="img"
+                    aria-label="Mood intensity chart, with gaps for days without recordings"
+                  >
+                    {[10, 30, 50, 70, 90].map((y) => (
+                      <line
+                        key={y}
+                        x1="0"
+                        x2="100"
+                        y1={y}
+                        y2={y}
+                        stroke="#ded4c8"
+                        strokeWidth="0.4"
+                      />
+                    ))}
+
+                    {segments.map((segment, i) => (
+                      <path
+                        key={i}
+                        d={segment}
+                        stroke={sage}
+                        strokeWidth="1.2"
+                        fill="none"
+                        vectorEffect="non-scaling-stroke"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+
+                    {points.map(
+                      (p, i) =>
+                        p.y !== null && (
+                          <circle
+                            key={i}
+                            cx={p.x}
+                            cy={p.y}
+                            r="1.1"
+                            fill={sage}
+                          />
+                        )
+                    )}
+                  </svg>
+
+                  <div className="flex justify-between gap-1 text-center text-[11px] text-[#796d61]">
+                    {days.map((d) => (
+                      <span key={d.id} className="flex-1">
+                        {d.day}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-semibold">No mood data yet</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Start using the app to see your AI-analyzed mood journey here.
+                <div className="rounded-xl bg-[#f0e9e0] px-5 py-9 text-center">
+                  <p className="font-semibold">No mood data yet</p>
+
+                  <p className="mt-1 text-sm text-[#87776c]">
+                    Start using the app to see your AI-analyzed mood journey.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    <Button size="sm" onClick={() => navigate("/journal")} className="flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
+
+                  <div className="mt-5 flex justify-center gap-2">
+                    <Action onClick={() => navigate('/journal')}>
                       Start Journal
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => navigate("/voice")} className="flex items-center gap-1">
-                      <Mic className="w-3 h-3" />
-                      Voice Session
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => navigate("/chat")} className="flex items-center gap-1">
-                      <MessageCircle className="w-3 h-3" />
+                    </Action>
+                    <Action onClick={() => navigate('/chat')}>
                       AI Chat
-                    </Button>
+                    </Action>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </section>
 
-          {/* AI Insights */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <span>AI-Powered Insights</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {insights.length > 0 ? (
-                <div className="space-y-3">
-                  {insights.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-3 p-4 rounded-lg bg-gradient-to-r from-muted/50 to-transparent border border-border/50">
-                      <Brain className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <p className="text-foreground text-sm leading-relaxed">{insight}</p>
+            {/* RECENT MOOD ENTRIES */}
+            <section className="border-b border-[#dcd1c6] py-9">
+              <h2 className="mb-6 flex items-center gap-3 text-lg font-extrabold tracking-tight">
+                <CalendarDays size={20} color={muted} />
+                Recent Mood Entries
+              </h2>
+
+              {days.length ? (
+                <div className="space-y-1">
+                  {days.map((day) => (
+                    <div
+                      key={day.id}
+                      className="grid grid-cols-[42px_34px_minmax(80px,125px)_1fr_52px] items-center gap-3 border-b border-[#e4dbd1] py-3 last:border-0 sm:gap-5"
+                    >
+                      <span className="text-xs font-semibold text-[#786a60]">
+                        {day.day}
+                      </span>
+
+                      {day.recorded ? (
+                        <MoodFace mood={day.mood} size={30} />
+                      ) : (
+                        <span className="text-center text-[#b5a99c]">
+                          —
+                        </span>
+                      )}
+
+                      <span className="text-xs font-semibold capitalize">
+                        {day.recorded
+                          ? day.mood || 'Recorded'
+                          : 'Not recorded'}
+                      </span>
+
+                      <div className="h-2 overflow-hidden rounded-full bg-[#ded5cb]">
+                        {day.intensity !== null && (
+                          <div
+                            className="h-full rounded-full bg-[#819179]"
+                            style={{
+                              width: `${day.intensity * 10}%`,
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <span className="text-right text-xs text-[#786a60]">
+                        {day.intensity !== null
+                          ? `${day.intensity}/10`
+                          : '—'}
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-semibold">AI insights will appear here</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                <p className="text-sm text-[#87776c]">
+                  No mood entries recorded yet.
+                </p>
+              )}
+            </section>
+
+            {/* AI INSIGHTS */}
+            <section className="py-9">
+              <h2 className="mb-6 flex items-center gap-3 text-lg font-extrabold tracking-tight">
+                <Sparkles size={20} color={muted} />
+                AI-Powered Insights
+              </h2>
+
+              {insights.length ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {insights.map((insight: any, i: number) => (
+                    <div
+                      key={i}
+                      className="flex gap-3 rounded-xl border border-[#ded3c7] bg-[#f1eae1] p-5"
+                    >
+                      <Brain
+                        size={17}
+                        className="mt-0.5 shrink-0 text-[#937e6b]"
+                      />
+
+                      <p className="text-sm leading-6 text-[#51473f]">
+                        {typeof insight === 'string'
+                          ? insight
+                          : String(insight)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold">
+                    AI insights will appear here
+                  </p>
+
+                  <p className="mt-2 text-sm text-[#87776c]">
                     The more you interact with the app, the more personalized insights our AI will generate.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                    <Button size="sm" onClick={() => navigate("/journal")} variant="outline" className="flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Action onClick={() => navigate('/journal')}>
                       Write in Journal
-                    </Button>
-                    <Button size="sm" onClick={() => navigate("/chat")} variant="outline" className="flex items-center gap-1">
-                      <MessageCircle className="w-3 h-3" />
+                    </Action>
+                    <Action onClick={() => navigate('/chat')}>
                       Chat with AI
-                    </Button>
+                    </Action>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-        </>
-      )}
+            </section>
+          </>
+        )}
+      </div>
     </div>
   );
 };
