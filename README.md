@@ -1,12 +1,14 @@
-# Therabot
+# Tethr
 
-Therabot is a mental-wellness companion for reflection, mood tracking, journaling, and preparation for professional therapy. It offers supportive tools between appointments and can help someone take an early step toward seeking care.
+Tethr is a mental-wellness companion for reflection, mood tracking, journaling, and preparation for professional therapy. It offers supportive tools between appointments and can help someone take an early step toward seeking care.
 
-> Therabot is not a therapist, medical service, crisis service, or replacement for professional care. It does not diagnose conditions or provide emergency assistance. If someone may be in immediate danger, contact local emergency services or an appropriate crisis service in their area.
+> Tethr is not a therapist, medical service, crisis service, or replacement for professional care. It does not diagnose conditions or provide emergency assistance. If someone may be in immediate danger, contact local emergency services or an appropriate crisis service in their area.
 
 ## What it includes
 
 - Supportive AI chat with saved conversation history
+- Resources hub with curated mental health resources
+- Personal accounts and saved settings
 - Guided journaling and mood check-ins
 - Mood patterns, summaries, and wellness insights
 - Breathing and voice-session tools
@@ -20,7 +22,7 @@ Therabot is a mental-wellness companion for reflection, mood tracking, journalin
   - Flexible next-step planning
   - Text and PDF export
 
-Therabot asks for confirmation before selected personal records are sent to Gemini to create a session brief. It never sends a brief to a therapist automatically.
+Tethr asks for confirmation before selected personal records are sent to Gemini to create a session brief. It never sends a brief to a therapist automatically.
 
 ## Technology
 
@@ -106,7 +108,7 @@ In the Supabase SQL Editor, run these migrations in order:
 
 The migrations create the application tables, therapy-preparation records, and row-level security policies.
 
-### 5. Run Therabot
+### 5. Run Tethr
 
 Start the backend:
 
