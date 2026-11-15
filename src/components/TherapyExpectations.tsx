@@ -52,7 +52,7 @@ const walkthroughs: Record<WalkthroughId, Walkthrough> = {
     cardTitle: "The first session",
     description: "See how an intake often unfolds, from paperwork to deciding whether the therapist feels right for you.",
     icon: ClipboardList,
-    accent: "from-primary/25 via-primary/10 to-transparent",
+    accent: "from-[#FAF7F2] via-[#F1EAE1] to-[#E9DFD4]",
     slides: [
       {
         eyebrow: "Before you begin",
@@ -140,7 +140,7 @@ const walkthroughs: Record<WalkthroughId, Walkthrough> = {
     cardTitle: "After the first session",
     description: "Learn the rhythm of ongoing therapy, how approaches differ, and how the work can change over time.",
     icon: HeartHandshake,
-    accent: "from-emerald-500/20 via-sky-500/10 to-transparent",
+    accent: "from-[#F7F2EB] via-[#ECE6DD] to-[#DDE3D8]",
     slides: [
       {
         eyebrow: "Arriving",
@@ -291,17 +291,17 @@ const TherapyExpectations = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 overflow-y-auto pb-10 pt-6"
+      className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 overflow-y-auto bg-[#F5F0E9] px-5 pb-10 pt-6 text-[#302A26] sm:px-8 [&_.bg-background]:bg-[#FAF7F2] [&_.bg-primary]:bg-[#302A26] [&_.text-foreground]:text-[#302A26] [&_.text-muted-foreground]:text-[#87776C] [&_.text-primary]:text-[#937E6B]"
     >
-      <section className="rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-sm md:p-8">
+      <section className="rounded-2xl border border-[#DED3C7] bg-[#FAF7F2] p-6 md:p-8">
         <div className="flex items-start gap-4">
-          <div className="rounded-2xl bg-primary/15 p-3 text-primary">
+          <div className="rounded-xl bg-[#E9DFD4] p-3 text-[#937E6B]">
             <Route className="h-7 w-7" aria-hidden="true" />
           </div>
           <div>
-            <p className="mb-1 text-sm font-medium text-primary">A gentle preview, not a rulebook</p>
-            <h1 className="text-3xl font-bold tracking-tight">What to expect in therapy</h1>
-            <p className="mt-3 max-w-3xl text-muted-foreground">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#937E6B]">A gentle preview, not a rulebook</p>
+            <h1 className="text-3xl font-black tracking-[-0.04em] text-[#302A26]">What to expect in therapy</h1>
+            <p className="mt-3 max-w-3xl leading-6 text-[#87776C]">
               Therapy can feel less intimidating when the process is familiar. These short walkthroughs show common patterns, while leaving room for different therapists, approaches, cultures, and settings.
             </p>
           </div>
@@ -324,25 +324,25 @@ const TherapyExpectations = () => {
               className="group rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label={`Start ${walkthrough.title} walkthrough`}
             >
-              <Card className="aspect-square h-full overflow-hidden rounded-2xl border-border/70 transition-all duration-300 group-hover:border-primary/40 group-hover:shadow-xl">
+              <Card className="aspect-square h-full overflow-hidden rounded-2xl border-[#DED3C7] bg-[#FAF7F2] text-[#302A26] shadow-none transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[#B9A593]">
                 <CardContent className={`flex h-full flex-col bg-gradient-to-br ${walkthrough.accent} p-7 md:p-8`}>
                   <div className="flex items-center justify-between">
-                    <div className="rounded-2xl bg-background/80 p-3 text-primary shadow-sm backdrop-blur">
+                    <div className="rounded-xl border border-[#DED3C7] bg-[#FAF7F2]/90 p-3 text-[#937E6B]">
                       <Icon className="h-7 w-7" aria-hidden="true" />
                     </div>
-                    <span className="flex items-center gap-1.5 rounded-full bg-background/75 px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur">
+                    <span className="flex items-center gap-1.5 rounded-full border border-[#DED3C7] bg-[#FAF7F2]/90 px-3 py-1.5 text-xs font-medium text-[#796353]">
                       <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                       About 2 minutes
                     </span>
                   </div>
 
                   <div className="mt-auto">
-                    <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary">7-step walkthrough</p>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#937E6B]">7-step walkthrough</p>
                     <h2 className="text-2xl font-bold md:text-3xl">{walkthrough.cardTitle}</h2>
-                    <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground md:text-base">
+                    <p className="mt-3 max-w-md text-sm leading-relaxed text-[#66584E] md:text-base">
                       {walkthrough.description}
                     </p>
-                    <div className="mt-6 flex items-center gap-2 font-semibold text-primary">
+                    <div className="mt-6 flex items-center gap-2 font-semibold text-[#796353]">
                       Start walkthrough
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                     </div>
@@ -354,18 +354,18 @@ const TherapyExpectations = () => {
         })}
       </div>
 
-      <section className="flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/40 p-4 text-sm text-muted-foreground">
-        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+      <section className="flex items-start gap-3 rounded-xl border border-[#DED3C7] bg-[#F1EAE1] p-4 text-sm text-[#66584E]">
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#937E6B]" aria-hidden="true" />
         <p>
           TheraBot is a companion for reflection and support between appointments. It is not a therapist, emergency service, or replacement for professional care. If you may be in immediate danger, contact local emergency services or a crisis resource in the Resources tab.
         </p>
       </section>
 
       <Dialog open={Boolean(activeWalkthrough)} onOpenChange={(open) => !open && closeWalkthrough()}>
-        <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-3xl flex-col overflow-hidden rounded-2xl p-0 sm:w-full">
+        <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-3xl flex-col overflow-hidden rounded-2xl border-[#DED3C7] bg-[#F5F0E9] p-0 text-[#302A26] sm:w-full [&_.bg-background]:bg-[#FAF7F2] [&_.bg-primary]:bg-[#302A26] [&_.text-foreground]:text-[#302A26] [&_.text-muted-foreground]:text-[#87776C] [&_.text-primary]:text-[#937E6B]">
           {activeWalkthrough && (
             <>
-              <DialogHeader className="border-b border-border/60 px-5 pb-4 pt-6 pr-12 sm:px-7">
+              <DialogHeader className="border-b border-[#DED3C7] px-5 pb-4 pt-6 pr-12 sm:px-7">
                 <div className="mb-3 flex items-center justify-between gap-4 text-sm text-muted-foreground">
                   <span>{completed ? "Walkthrough complete" : `Step ${slideIndex + 1} of ${activeWalkthrough.slides.length}`}</span>
                   <span className="hidden items-center gap-1.5 sm:flex">
@@ -379,7 +379,7 @@ const TherapyExpectations = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7 sm:py-8">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[#FAF7F2] px-5 py-6 sm:px-7 sm:py-8">
                 <AnimatePresence mode="wait" initial={false}>
                   {completed ? (
                     <motion.div
@@ -390,7 +390,7 @@ const TherapyExpectations = () => {
                       className="flex min-h-[340px] flex-col items-center justify-center text-center"
                       role="status"
                     >
-                      <div className="mb-5 rounded-full bg-emerald-500/15 p-4 text-emerald-600">
+                      <div className="mb-5 rounded-full bg-[#DDE3D8] p-4 text-[#71816B]">
                         <CheckCircle2 className="h-10 w-10" aria-hidden="true" />
                       </div>
                       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">You made it through</p>
@@ -419,7 +419,7 @@ const TherapyExpectations = () => {
                       className="min-h-[340px]"
                       aria-live="polite"
                     >
-                      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#E9DFD4] text-[#937E6B]">
                         <Sparkles className="h-6 w-6" aria-hidden="true" />
                       </div>
                       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">{slide.eyebrow}</p>
@@ -428,7 +428,7 @@ const TherapyExpectations = () => {
                       <ul className="mt-6 space-y-3">
                         {slide.points.map((point) => (
                           <li key={point} className="flex items-start gap-3">
-                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E9DFD4] text-[#937E6B]">
                               <Check className="h-3 w-3" aria-hidden="true" />
                             </span>
                             <span className="leading-relaxed">{point}</span>
@@ -436,7 +436,7 @@ const TherapyExpectations = () => {
                         ))}
                       </ul>
                       {slide.note && (
-                        <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-relaxed text-muted-foreground">
+                        <div className="mt-6 rounded-xl border border-[#D8CABC] bg-[#F1EAE1] p-4 text-sm leading-relaxed text-[#66584E]">
                           <span className="font-semibold text-foreground">Keep in mind: </span>
                           {slide.note}
                         </div>
@@ -447,7 +447,7 @@ const TherapyExpectations = () => {
               </div>
 
               {!completed && (
-                <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/30 px-5 py-4 sm:px-7">
+                <div className="flex items-center justify-between gap-3 border-t border-[#DED3C7] bg-[#F1EAE1] px-5 py-4 sm:px-7">
                   <Button variant="ghost" onClick={goBack} disabled={slideIndex === 0}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
@@ -456,7 +456,7 @@ const TherapyExpectations = () => {
                     {activeWalkthrough.slides.map((_, index) => (
                       <span
                         key={index}
-                        className={`h-1.5 rounded-full transition-all ${index === slideIndex ? "w-6 bg-primary" : index < slideIndex ? "w-2 bg-primary/50" : "w-2 bg-muted-foreground/25"}`}
+                        className={`h-1.5 rounded-full transition-all ${index === slideIndex ? "w-6 bg-[#302A26]" : index < slideIndex ? "w-2 bg-[#937E6B]" : "w-2 bg-[#CFC3B7]"}`}
                       />
                     ))}
                   </div>

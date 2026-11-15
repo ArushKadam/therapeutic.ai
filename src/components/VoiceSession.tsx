@@ -187,21 +187,23 @@ const VoiceSession = () => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="flex h-full flex-col space-y-6 pt-6"
+      className="flex min-h-full flex-col space-y-6 overflow-y-auto bg-[#F5F0E9] px-5 pb-8 pt-6 text-[#302A26] sm:px-8 [&_.bg-background]:bg-[#FAF7F2] [&_.bg-card]:bg-[#FAF7F2] [&_.bg-primary]:bg-[#302A26] [&_.border]:border-[#DED3C7] [&_.text-foreground]:text-[#302A26] [&_.text-muted-foreground]:text-[#87776C] [&_.text-primary]:text-[#937E6B]"
     >
-      <Card className="bg-gradient-to-br from-primary/10 to-transparent">
+      <Card className="overflow-hidden rounded-2xl border-[#DED3C7] bg-[#FAF7F2] shadow-none">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-            <Mic className="h-6 w-6 text-primary" />Voice Therapy Session
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#937E6B]">A space to reconnect</p>
+          <CardTitle className="flex items-center gap-3 text-3xl font-black tracking-[-0.04em] text-[#302A26]">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E9DFD4]"><Mic className="h-5 w-5 text-[#937E6B]" /></span>
+            Voice session
           </CardTitle>
-          <CardDescription>Talk naturally with your AI wellness companion over a secure LiveKit audio session.</CardDescription>
+          <CardDescription className="max-w-2xl leading-6 text-[#87776C]">Talk naturally with your AI wellness companion over a private LiveKit audio session. This is a reflection tool, not a replacement for professional care.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {getStatus()}
               {conversationHistory.length > 0 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="border-[#D8CABC] bg-[#F5F0E9] text-xs text-[#66584E]">
                   <Sparkles className="mr-1 h-3 w-3" />{Math.floor(conversationHistory.length / 2)} exchanges
                 </Badge>
               )}
@@ -211,17 +213,17 @@ const VoiceSession = () => {
         </CardContent>
       </Card>
 
-      <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-2">
-        <Card className="flex flex-col transition-shadow hover:shadow-md">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Bot className="h-5 w-5 text-primary" />AI Companion</CardTitle></CardHeader>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="flex flex-col rounded-2xl border-[#DED3C7] bg-[#FAF7F2] shadow-none transition-colors hover:border-[#B9A593]">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-[#302A26]"><Bot className="h-5 w-5 text-[#937E6B]" />AI Companion</CardTitle></CardHeader>
           <CardContent className="flex-1">
             <div className="flex h-full min-h-[120px] items-center justify-center">
               {latestAiResponse ? <p className="text-lg leading-relaxed">{latestAiResponse}</p> : <p className="text-center text-muted-foreground">Your companion’s response will appear here when the session begins.</p>}
             </div>
           </CardContent>
         </Card>
-        <Card className="flex flex-col bg-muted/50">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><User className="h-5 w-5 text-muted-foreground" />Your Voice</CardTitle></CardHeader>
+        <Card className="flex flex-col rounded-2xl border-[#DED3C7] bg-[#F1EAE1] shadow-none">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-lg text-[#302A26]"><User className="h-5 w-5 text-[#937E6B]" />Your Voice</CardTitle></CardHeader>
           <CardContent className="flex-1">
             <div className="flex h-full min-h-[80px] items-center justify-center">
               {transcript ? <p className="text-center text-lg italic">“{transcript}”</p> : <p className="text-center text-muted-foreground">Your speech transcript will appear here.</p>}
@@ -231,17 +233,17 @@ const VoiceSession = () => {
       </div>
 
       <div ref={audioContainerRef} className="sr-only" aria-hidden="true" />
-      <Card className="bg-gradient-to-br from-secondary/20 to-transparent">
+      <Card className="rounded-2xl border-[#DED3C7] bg-[#FAF7F2] shadow-none">
         <CardContent className="flex flex-col items-center gap-4 p-6">
           <div className="flex w-full flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button onClick={toggleMicrophone} disabled={sessionState === 'connecting'} className="w-full sm:w-auto" size="lg">
+            <Button onClick={toggleMicrophone} disabled={sessionState === 'connecting'} className="w-full rounded-xl bg-[#302A26] text-[#F5F0E9] hover:bg-[#4A3D34] sm:w-auto" size="lg">
               {microphoneEnabled && roomRef.current ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
               <span className="ml-2">
                 {sessionState === 'connecting' ? 'Connecting…' : roomRef.current ? microphoneEnabled ? 'Mute Microphone' : 'Unmute Microphone' : 'Start Voice Session'}
               </span>
             </Button>
             {roomRef.current && (
-              <Button onClick={endSession} variant="destructive" className="w-full sm:w-auto" size="lg">
+              <Button onClick={endSession} variant="destructive" className="w-full rounded-xl sm:w-auto" size="lg">
                 <CircleStop className="h-6 w-6" /><span className="ml-2">End Session</span>
               </Button>
             )}
@@ -249,7 +251,7 @@ const VoiceSession = () => {
           <div className="w-full max-w-sm space-y-2">
             <label htmlFor="voice-choice" className="block text-center text-sm font-medium">AI voice</label>
             <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={Boolean(roomRef.current)}>
-              <SelectTrigger id="voice-choice"><SelectValue placeholder="Choose a voice" /></SelectTrigger>
+              <SelectTrigger id="voice-choice" className="border-[#D8CABC] bg-[#F5F0E9] text-[#302A26]"><SelectValue placeholder="Choose a voice" /></SelectTrigger>
               <SelectContent className="max-h-72">
                 {VOICES.map(([name, style]) => <SelectItem key={name} value={name}>{name} · {style}</SelectItem>)}
               </SelectContent>

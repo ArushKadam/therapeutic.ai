@@ -250,7 +250,7 @@ const SessionBriefTab = () => {
             <div>
               <label className="mb-2 block text-sm font-medium">Date range</label>
               <Select value={range} onValueChange={changeRange}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border-[#D8CABC] bg-[#FAF7F2] text-[#302A26]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="14">Past 2 weeks</SelectItem>
                   <SelectItem value="28">Past 4 weeks</SelectItem>
@@ -290,7 +290,7 @@ const SessionBriefTab = () => {
           </div>
 
           {counts && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="rounded-xl border border-[#C7D0C2] bg-[#EEF1EB] p-4">
               <p className="font-medium">These records will be sent securely to Gemini:</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {(Object.keys(counts) as Array<keyof typeof counts>).map((key) => (
@@ -341,7 +341,7 @@ const SessionBriefTab = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div><label className="mb-2 block text-sm font-medium">Hours slept</label><Input type="number" min="0" max="24" step="0.5" value={sleep.hours} onChange={(event) => setSleep({ ...sleep, hours: event.target.value })} placeholder="7.5" /></div>
-              <div><label className="mb-2 block text-sm font-medium">Sleep quality</label><Select value={sleep.quality} onValueChange={(value) => setSleep({ ...sleep, quality: value })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{qualityLabels.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-medium">Sleep quality</label><Select value={sleep.quality} onValueChange={(value) => setSleep({ ...sleep, quality: value })}><SelectTrigger className="border-[#D8CABC] bg-[#FAF7F2] text-[#302A26]"><SelectValue /></SelectTrigger><SelectContent>{qualityLabels.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}</SelectContent></Select></div>
             </div>
             <div><label className="mb-2 block text-sm font-medium">Notes <span className="font-normal text-muted-foreground">(optional)</span></label><Textarea value={sleep.notes} onChange={(event) => setSleep({ ...sleep, notes: event.target.value })} placeholder="Woke up a few times, felt rested by morning..." /></div>
             <Button variant="outline" onClick={saveSleep} disabled={savingSleep || !sleep.hours}>{savingSleep && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save sleep check-in</Button>
@@ -350,8 +350,8 @@ const SessionBriefTab = () => {
       </div>
 
       {brief && (
-        <Card className="border-primary/25">
-          <CardHeader className="border-b bg-gradient-to-br from-primary/10 to-transparent">
+        <Card className="border-[#B9A593] bg-[#FAF7F2]">
+          <CardHeader className="border-b border-[#DED3C7] bg-[#F1EAE1]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div><CardTitle>Editable session brief</CardTitle><CardDescription>Review every line. Remove anything you do not want to bring into therapy.</CardDescription></div>
               <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={copySummary}><ClipboardCopy className="mr-2 h-4 w-4" /> Copy as text</Button><Button size="sm" onClick={() => downloadTherapyBriefPdf('Therapy Session Brief', summaryText)}><Download className="mr-2 h-4 w-4" /> Download PDF</Button></div>
@@ -491,7 +491,7 @@ const NextStepsTab = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-primary/10 to-transparent"><CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-primary" /> One small step at a time</CardTitle><CardDescription>No streaks, deadlines, or guilt. Edit the plan, skip what does not apply, and move at your own pace.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3"><Progress value={progress} className="h-2 flex-1" /><span className="text-sm text-muted-foreground">{completed} complete</span></div></CardContent></Card>
+      <Card className="border-[#DED3C7] bg-[#F1EAE1]"><CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-primary" /> One small step at a time</CardTitle><CardDescription>No streaks, deadlines, or guilt. Edit the plan, skip what does not apply, and move at your own pace.</CardDescription></CardHeader><CardContent><div className="flex items-center gap-3"><Progress value={progress} className="h-2 flex-1" /><span className="text-sm text-muted-foreground">{completed} complete</span></div></CardContent></Card>
       {error && <Alert variant="destructive"><AlertTitle>Database setup needed</AlertTitle><AlertDescription>{error} Apply the new Prepare for Therapy Supabase migration, then try again.</AlertDescription></Alert>}
       {!error && <Card><CardContent className="space-y-3 pt-6">{steps.map((step) => <div key={step.id} className={`flex items-center gap-2 rounded-xl border p-3 ${step.skipped ? 'bg-muted/30 opacity-60' : ''}`}><Checkbox checked={step.completed} disabled={step.skipped} onCheckedChange={(checked) => update(step, { completed: checked === true })} aria-label={`Mark ${step.title} complete`} /><Input value={step.title} disabled={step.skipped} onChange={(event) => setSteps(steps.map((item) => item.id === step.id ? { ...item, title: event.target.value } : item))} onBlur={(event) => update(step, { title: event.target.value.trim() || step.title })} className={`border-0 bg-transparent shadow-none ${step.completed ? 'text-muted-foreground line-through' : ''}`} /><Button size="icon" variant="ghost" onClick={() => update(step, { skipped: !step.skipped, completed: false })} aria-label={step.skipped ? 'Restore step' : 'Skip step'}><SkipForward className="h-4 w-4" /></Button><Button size="icon" variant="ghost" onClick={async () => { await therapyNextStepService.remove(step.id); setSteps(steps.filter((item) => item.id !== step.id)); }} aria-label="Remove step"><Trash2 className="h-4 w-4" /></Button></div>)}<Separator /><div className="flex gap-2"><Input value={newStep} onChange={(event) => setNewStep(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && add()} placeholder="Add a step that feels useful..." /><Button onClick={add}><Plus className="mr-2 h-4 w-4" /> Add</Button></div></CardContent></Card>}
     </div>
@@ -499,15 +499,15 @@ const NextStepsTab = () => {
 };
 
 const PrepareForTherapy = () => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mx-auto h-full w-full max-w-6xl space-y-6 overflow-y-auto pb-10 pt-6">
-    <section className="rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-sm md:p-8">
-      <div className="flex items-start gap-4"><div className="rounded-2xl bg-primary/15 p-3 text-primary"><BookOpenCheck className="h-7 w-7" /></div><div><p className="mb-1 text-sm font-medium text-primary">A companion for the next step</p><h1 className="text-3xl font-bold tracking-tight">Prepare for therapy</h1><p className="mt-3 max-w-3xl text-muted-foreground">Organize what you want to discuss, make reaching out feel more manageable, and prepare for appointments without replacing professional care.</p></div></div>
+  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mx-auto h-full w-full max-w-6xl space-y-6 overflow-y-auto bg-[#F5F0E9] px-5 pb-10 pt-6 text-[#302A26] sm:px-8 [&_.bg-background]:bg-[#FAF7F2] [&_.bg-card]:bg-[#FAF7F2] [&_.bg-primary]:bg-[#302A26] [&_.border]:border-[#DED3C7] [&_.text-card-foreground]:text-[#302A26] [&_.text-foreground]:text-[#302A26] [&_.text-muted-foreground]:text-[#87776C] [&_.text-primary]:text-[#937E6B] [&_input]:border-[#D8CABC] [&_input]:bg-[#FAF7F2] [&_input]:text-[#302A26] [&_textarea]:border-[#D8CABC] [&_textarea]:bg-[#FAF7F2] [&_textarea]:text-[#302A26]">
+    <section className="rounded-2xl border border-[#DED3C7] bg-[#FAF7F2] p-6 md:p-8">
+      <div className="flex items-start gap-4"><div className="rounded-xl bg-[#E9DFD4] p-3 text-[#937E6B]"><BookOpenCheck className="h-7 w-7" /></div><div><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#937E6B]">A companion for the next step</p><h1 className="text-3xl font-black tracking-[-0.04em] text-[#302A26]">Prepare for therapy</h1><p className="mt-3 max-w-3xl leading-6 text-[#87776C]">Organize what you want to discuss, make reaching out feel more manageable, and prepare for appointments without replacing professional care.</p></div></div>
     </section>
     <Tabs defaultValue="brief" className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-1 gap-1 rounded-xl bg-muted/70 p-1 sm:grid-cols-3">
-        <TabsTrigger value="brief" className="gap-2 py-3"><FileHeart className="h-4 w-4" /> My Session Brief</TabsTrigger>
-        <TabsTrigger value="finding" className="gap-2 py-3"><Search className="h-4 w-4" /> Finding a Therapist</TabsTrigger>
-        <TabsTrigger value="steps" className="gap-2 py-3"><CheckCircle2 className="h-4 w-4" /> My Next Steps</TabsTrigger>
+      <TabsList className="grid h-auto w-full grid-cols-1 gap-1 rounded-xl border border-[#DED3C7] bg-[#E9DFD4] p-1 sm:grid-cols-3">
+        <TabsTrigger value="brief" className="gap-2 py-3 text-[#796353] data-[state=active]:bg-[#FAF7F2] data-[state=active]:text-[#302A26] data-[state=active]:shadow-none"><FileHeart className="h-4 w-4" /> My Session Brief</TabsTrigger>
+        <TabsTrigger value="finding" className="gap-2 py-3 text-[#796353] data-[state=active]:bg-[#FAF7F2] data-[state=active]:text-[#302A26] data-[state=active]:shadow-none"><Search className="h-4 w-4" /> Finding a Therapist</TabsTrigger>
+        <TabsTrigger value="steps" className="gap-2 py-3 text-[#796353] data-[state=active]:bg-[#FAF7F2] data-[state=active]:text-[#302A26] data-[state=active]:shadow-none"><CheckCircle2 className="h-4 w-4" /> My Next Steps</TabsTrigger>
       </TabsList>
       <TabsContent value="brief" className="mt-6"><SessionBriefTab /></TabsContent>
       <TabsContent value="finding" className="mt-6"><FindingTherapistTab /></TabsContent>
