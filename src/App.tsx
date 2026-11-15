@@ -34,6 +34,7 @@ const AppRoutes = () => {
             <Route path="/journal" element={<Index />} />
             <Route path="/resources" element={<Index />} />
             <Route path="/therapy-guide" element={<Index />} />
+            <Route path="/prepare-therapy" element={<Index />} />
             <Route path="/plans" element={<Index />} />
             <Route path="/settings" element={<Index />} />
           </>

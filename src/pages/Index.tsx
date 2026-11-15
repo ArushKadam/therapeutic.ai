@@ -11,6 +11,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import Resources from "@/components/Resources";
 import WeeklyPlans from "@/components/WeeklyPlans";
 import TherapyExpectations from "@/components/TherapyExpectations";
+import PrepareForTherapy from "@/components/PrepareForTherapy";
 
 const components = {
   dashboard: DashboardHome,
@@ -21,6 +22,7 @@ const components = {
   resources: Resources,
   plans: WeeklyPlans,
   "therapy-guide": TherapyExpectations,
+  "prepare-therapy": PrepareForTherapy,
   settings: SettingsPanel,
 };
 

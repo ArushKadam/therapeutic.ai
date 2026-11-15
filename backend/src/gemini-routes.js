@@ -18,9 +18,18 @@ router.post('/generate', async (req, res) => {
   if (!token) return res.status(401).json({ error: 'Sign in to use AI features.' });
 
   try {
-    const authResponse = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${token}` },
-    });
+    const supabaseBaseUrl = supabaseUrl.replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
+    let authResponse;
+    try {
+      authResponse = await fetch(`${supabaseBaseUrl}/auth/v1/user`, {
+        headers: { apikey: supabaseKey, Authorization: `Bearer ${token}` },
+      });
+    } catch (authError) {
+      console.error('Supabase auth verification failed:', authError.message);
+      return res.status(502).json({
+        error: 'The backend could not reach Supabase. Copy the working VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY values from the root .env into backend/.env without the VITE_ prefix.',
+      });
+    }
     if (!authResponse.ok) return res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
     const user = await authResponse.json();
 
@@ -42,18 +51,39 @@ router.post('/generate', async (req, res) => {
       return res.status(413).json({ error: 'Gemini request is too large.' });
     }
 
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: requestContents,
-        ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
-      }),
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const geminiBody = JSON.stringify({
+      contents: requestContents,
+      ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
     });
-    const result = await geminiResponse.json();
+    let geminiResponse;
+    let result;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      geminiResponse = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: geminiBody,
+      });
+      result = await geminiResponse.json().catch(() => ({}));
+      if (geminiResponse.ok || ![429, 500, 503].includes(geminiResponse.status) || attempt === 1) break;
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
     if (!geminiResponse.ok) {
-      console.error('Gemini request failed with status', geminiResponse.status);
-      return res.status(502).json({ error: 'The AI service could not complete the request.' });
+      const upstreamMessage = typeof result?.error?.message === 'string'
+        ? result.error.message.replaceAll(apiKey, '[redacted]').slice(0, 300)
+        : '';
+      console.error('Gemini request failed', { status: geminiResponse.status, message: upstreamMessage });
+      if (geminiResponse.status === 429) {
+        return res.status(502).json({ error: 'Gemini is temporarily rate-limited. Wait about a minute, then try again.' });
+      }
+      if (geminiResponse.status === 403) {
+        return res.status(502).json({ error: 'The Gemini API key does not have permission for this model or request. Check the key restrictions in Google AI Studio.' });
+      }
+      return res.status(502).json({
+        error: upstreamMessage
+          ? `Gemini rejected the request (${geminiResponse.status}): ${upstreamMessage}`
+          : `Gemini rejected the request with status ${geminiResponse.status}.`,
+      });
     }
     const text = result.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
     if (!text) return res.status(502).json({ error: 'The AI service returned an empty response.' });

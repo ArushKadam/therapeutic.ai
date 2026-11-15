@@ -9,6 +9,7 @@ import { getChatSession, sendMessageToGemini, generateChatTitle, type GeminiSess
 import { conversationService, messageService, type Conversation, type Message as DBMessage } from "@/services/supabase";
 import { moodOrchestrator } from "@/services/mood-orchestrator";
 import { useAuth } from "@/contexts/AuthContext";
+import TalkAboutThisButton from '@/components/TalkAboutThisButton';
 
 // UI Message type for local state
 interface Message {
@@ -399,6 +400,14 @@ const TextChat = () => {
                       <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
                     </CardContent>
                   </Card>
+                  {message.id && !message.id.startsWith('error-') && (
+                    <TalkAboutThisButton
+                      sourceType="chat_message"
+                      sourceId={message.id}
+                      content={message.content}
+                      className="h-8 shrink-0 px-2 text-xs text-muted-foreground"
+                    />
+                  )}
                 </motion.div>
               ))}
               {isLoading && (

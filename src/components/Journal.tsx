@@ -11,6 +11,7 @@ import JournalEntryEditor from './JournalEntryEditor';
 import JournalPromptSelector from './JournalPromptSelector';
 import Resources from "@/components/Resources";
 import { JournalPrompt } from '@/services/journalPrompts';
+import TalkAboutThisButton from '@/components/TalkAboutThisButton';
 
 const Journal = () => {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -170,9 +171,17 @@ const Journal = () => {
                               {entry.mood && ` - Feeling ${entry.mood}`}
                             </CardDescription>
                           </div>
-                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleEditEntry(entry)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <TalkAboutThisButton
+                              sourceType="journal_entry"
+                              sourceId={entry.id}
+                              content={`${entry.title}\n\n${entry.content}`}
+                              className="h-8 px-2 text-xs text-muted-foreground"
+                            />
+                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleEditEntry(entry)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent>

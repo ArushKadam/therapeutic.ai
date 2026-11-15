@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from "framer-motion";
-import { Home, Mic, MessageCircle, BarChart3, Settings, ChevronRight, Heart, Book, Bell, LineChart, Package, Users, MessageSquare, BookOpen, LogOut, Moon, Sun, Wind, Library, Calendar, ClipboardList } from "lucide-react";
+import { Home, Mic, MessageCircle, BarChart3, Settings, ChevronRight, Heart, Book, Bell, LineChart, Package, Users, MessageSquare, BookOpen, LogOut, Moon, Sun, Wind, Library, Calendar, ClipboardList, FileHeart } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, SidebarHeader, useSidebar } from "@/components/ui/sidebar";
 import { UserProfile } from "./UserProfile";
 import { Skeleton } from './ui/skeleton';
@@ -76,6 +76,14 @@ const navigationItems = [
     icon: ClipboardList,
     label: 'What to Expect',
     description: 'A guide to therapy'
+  },
+  {
+    id: 'prepare-therapy',
+    title: "Prepare for Therapy",
+    url: "/prepare-therapy",
+    icon: FileHeart,
+    label: 'Prepare for Therapy',
+    description: 'Plan your next step'
   },
   {
     id: 'resources',

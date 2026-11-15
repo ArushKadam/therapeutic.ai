@@ -6,6 +6,28 @@ export const GEMINI_MODEL = "gemini-3.5-flash-lite";
 type GeminiContent = { role: "user" | "model"; parts: { text: string }[] };
 export type GeminiSession = { systemPrompt: string; history: GeminiContent[] };
 
+type GeminiApiResponse = { text?: string; error?: string };
+
+async function readGeminiResponse(response: Response): Promise<GeminiApiResponse> {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    throw new Error(
+      response.status >= 500
+        ? 'The AI backend is not reachable. Start the Therabot backend on port 3001 and check backend/.env.'
+        : 'The AI service returned an empty response.',
+    );
+  }
+  try {
+    return JSON.parse(raw) as GeminiApiResponse;
+  } catch {
+    throw new Error(
+      response.ok
+        ? 'The AI service returned a response that Therabot could not read.'
+        : `The AI request failed (${response.status}). Check that the backend is running and configured.`,
+    );
+  }
+}
+
 export async function generateGeminiContent(prompt: string, systemInstruction?: string): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Sign in to use the AI features.");
@@ -18,8 +40,9 @@ export async function generateGeminiContent(prompt: string, systemInstruction?: 
     },
     body: JSON.stringify({ prompt, systemInstruction }),
   });
-  const result = await response.json();
+  const result = await readGeminiResponse(response);
   if (!response.ok) throw new Error(result.error || "Gemini request failed.");
+  if (!result.text) throw new Error('The AI service returned an empty response.');
   return result.text;
 }
 
@@ -80,8 +103,9 @@ export const sendMessageToGemini = async (session: GeminiSession, message: strin
         contents: [...session.history, { role: "user", parts: [{ text: message }] }],
       }),
     });
-    const result = await response.json();
+    const result = await readGeminiResponse(response);
     if (!response.ok) throw new Error(result.error || "Gemini request failed.");
+    if (!result.text) throw new Error('The AI service returned an empty response.');
     session.history.push({ role: "user", parts: [{ text: message }] }, { role: "model", parts: [{ text: result.text }] });
     return result.text;
   } catch (error) {

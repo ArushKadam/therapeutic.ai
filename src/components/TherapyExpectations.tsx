@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -8,7 +9,6 @@ import {
   ClipboardList,
   Clock3,
   HeartHandshake,
-  RefreshCcw,
   Route,
   ShieldCheck,
   Sparkles,
@@ -225,6 +225,7 @@ const walkthroughs: Record<WalkthroughId, Walkthrough> = {
 };
 
 const TherapyExpectations = () => {
+  const navigate = useNavigate();
   const [activeId, setActiveId] = useState<WalkthroughId | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -397,20 +398,14 @@ const TherapyExpectations = () => {
                       <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">
                         This walkthrough describes common patterns, not a script you have to follow. You can ask questions, name your boundaries, and take time to decide what support fits.
                       </p>
+                      <p className="mt-5 font-medium">
+                        Now that you know what therapy can look like, would you like help taking the next step?
+                      </p>
                       <div className="mt-7 flex flex-wrap justify-center gap-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setSlideIndex(0);
-                            setCompleted(false);
-                          }}
-                        >
-                          <RefreshCcw className="mr-2 h-4 w-4" />
-                          View again
-                        </Button>
-                        <Button onClick={closeWalkthrough}>
-                          <Check className="mr-2 h-4 w-4" />
-                          Done
+                        <Button variant="outline" onClick={closeWalkthrough}>Maybe Later</Button>
+                        <Button onClick={() => navigate('/prepare-therapy')}>
+                          Prepare for Therapy
+                          <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       </div>
                     </motion.div>

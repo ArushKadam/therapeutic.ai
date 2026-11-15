@@ -627,4 +627,170 @@ export const planService = {
     if (error) throw error;
     return data;
   }
-}; 
+};
+
+export interface TherapyBookmark {
+  id: string;
+  user_id: string;
+  source_type: 'chat_message' | 'journal_entry';
+  source_id: string;
+  content: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SleepCheckin {
+  id: string;
+  user_id: string;
+  checkin_date: string;
+  hours: number;
+  quality: number;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TherapyNextStep {
+  id: string;
+  user_id: string;
+  title: string;
+  completed: boolean;
+  skipped: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const requireUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+  return user;
+};
+
+export const therapyBookmarkService = {
+  async list(): Promise<TherapyBookmark[]> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('therapy_bookmarks')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getBySource(sourceType: TherapyBookmark['source_type'], sourceId: string): Promise<TherapyBookmark | null> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('therapy_bookmarks')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('source_type', sourceType)
+      .eq('source_id', sourceId)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  },
+
+  async save(input: Pick<TherapyBookmark, 'source_type' | 'source_id' | 'content' | 'note'>): Promise<TherapyBookmark> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('therapy_bookmarks')
+      .upsert(
+        { ...input, user_id: user.id, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,source_type,source_id' }
+      )
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async remove(id: string): Promise<void> {
+    const user = await requireUser();
+    const { error } = await supabase
+      .from('therapy_bookmarks')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (error) throw error;
+  },
+};
+
+export const sleepCheckinService = {
+  async list(startDate?: string, endDate?: string): Promise<SleepCheckin[]> {
+    const user = await requireUser();
+    let query = supabase
+      .from('sleep_checkins')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('checkin_date', { ascending: false });
+    if (startDate) query = query.gte('checkin_date', startDate);
+    if (endDate) query = query.lte('checkin_date', endDate);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async save(input: Pick<SleepCheckin, 'checkin_date' | 'hours' | 'quality' | 'notes'>): Promise<SleepCheckin> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('sleep_checkins')
+      .upsert(
+        { ...input, user_id: user.id, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,checkin_date' }
+      )
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+};
+
+export const therapyNextStepService = {
+  async list(): Promise<TherapyNextStep[]> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('therapy_next_steps')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(title: string, sortOrder: number): Promise<TherapyNextStep> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('therapy_next_steps')
+      .insert({ title, sort_order: sortOrder, user_id: user.id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, changes: Partial<Pick<TherapyNextStep, 'title' | 'completed' | 'skipped' | 'sort_order'>>): Promise<TherapyNextStep> {
+    const user = await requireUser();
+    const { data, error } = await supabase
+      .from('therapy_next_steps')
+      .update({ ...changes, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async remove(id: string): Promise<void> {
+    const user = await requireUser();
+    const { error } = await supabase
+      .from('therapy_next_steps')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (error) throw error;
+  },
+};
