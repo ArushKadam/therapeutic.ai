@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
+    "livekit:agent": "node src/livekit-agent.mjs dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,9 +14,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@livekit/agents": "^1.10.0",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
+    "livekit-server-sdk": "^2.19.3",
     "pg": "^8.16.3"
   },
   "devDependencies": {

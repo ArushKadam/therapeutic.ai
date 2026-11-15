@@ -8,12 +8,14 @@
 ## Local development setup
 
 1. Copy `.env.example` to `.env` and fill in your Supabase project URL and publishable key.
-2. Copy `backend/.env.example` to `backend/.env`; set `GEMINI_API_KEY`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` there. Keep Gemini keys server-side and rotate any key previously used in a browser build.
+2. Copy `backend/.env.example` to `backend/.env`; set `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` there. Keep API secrets server-side.
 3. Run `supabase/migrations/20261112000100_therabot_schema.sql` in your project's Supabase SQL Editor to create the app tables and row-level security policies.
 4. Install dependencies with `npm ci` and `npm ci --prefix backend`.
-5. Start the API in one terminal with `npm run dev --prefix backend` and the frontend in another with `npm run dev`.
+5. Start the API with `npm run dev --prefix backend`, the LiveKit voice agent with `npm run livekit:agent --prefix backend`, and the frontend with `npm run dev` in three terminals.
 
 The Vite development server proxies `/api` to the local backend. For deployment, host the backend separately, set its `FRONTEND_ORIGIN`, and set the frontend's `VITE_API_BASE_URL` to the backend origin.
+
+The voice session uses LiveKit for realtime audio and Gemini Live through LiveKit Inference. Start the local voice agent worker alongside the API. For cloud deployment, deploy the worker to LiveKit Cloud with the same agent name (`therabot-voice-agent`).
 
 
 ## Category
